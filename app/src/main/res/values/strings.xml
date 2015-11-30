@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">TestGoogleAPI</string>
+    <string name="title_activity_maps">Map</string>
+
+    <string name="twitter_consumer_key">AFVIORbHuBa6WtgRG0AUDgmnC</string>
+    <string name="twitter_consumer_secret">zblFrLDJTSQPngtPX7e4idPMk6N6gw2xd0qau3ONMhzzbeWyrM
+</string>
+    <string name="twitter_callback_url">twittercallback://callback</string>
+</resources>
