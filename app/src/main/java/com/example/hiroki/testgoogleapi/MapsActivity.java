@@ -38,7 +38,11 @@ import com.google.android.gms.maps.GoogleMap.OnMarkerClickListener;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.Projection;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
+import com.google.android.gms.maps.model.GroundOverlay;
+import com.google.android.gms.maps.model.GroundOverlayOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -115,6 +119,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     //twitterにキーワード検索をかける際のキーワードを格納するための変数
     private static String keyword = "kobe";
+
+    //現在タップしているマーカーの位置情報を格納しておく変数
+    private LatLng location;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -205,8 +212,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         //mMap.setTrafficEnabled(true);
 
         //ボタンの設置
-        //buttonSearch = (Button) findViewById(R.id.buttonSearch);
-        //buttonSearch.setOnClickListener(this);
+        buttonSearch = (Button) findViewById(R.id.buttonSearch);
+        buttonSearch.setOnClickListener(this);
 
         buttonClear = (Button) findViewById(R.id.buttonClear);
         buttonClear.setOnClickListener(this);
@@ -331,6 +338,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                     //twitter検索のために店名を取得しておく
                                     keyword = marker.getTitle();
 
+                                    location = marker.getPosition();
                                     //TODO ここに処理を加える(画面下になんか出すとか)
 
                                     //タップ確認のためトーストを表示
@@ -456,20 +464,60 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
             markerArray.clear();
             Toast.makeText(this, "マーカーを削除しました", Toast.LENGTH_LONG).show();
+        } else if (v == buttonSearch) {
+
+            if (location == null) {
+                Toast.makeText(this, "検索したいお店のマーカーをタップして下さい。", Toast.LENGTH_LONG).show();
+            } else {
+                //画面下の検索ボタンが押されたとき
+                LatLng startLocation;
+                Marker marker;
+                BitmapDescriptor icon = BitmapDescriptorFactory.fromResource(R.drawable.ruun);
+
+                MarkerOptions options = new MarkerOptions();
+
+                //第一象限
+                for (int i = 0; i < 5; i++) {
+                    startLocation = moveLatLng(location, 0.1 - i * 0.02, i * 0.02);
+                    options.position(startLocation);
+                    options.icon(icon);
+                    marker = mMap.addMarker(options);
+                    markerArray.add(marker);
+                    animateMarker(marker, startLocation, location, true);
+                }
+
+                //第四象限
+                for (int i = 0; i < 5; i++) {
+                    startLocation = moveLatLng(location, 0 - i * 0.02, 0.1 - i * 0.02);
+                    options.position(startLocation);
+                    options.icon(icon);
+                    marker = mMap.addMarker(options);
+                    markerArray.add(marker);
+                    animateMarker(marker, startLocation, location, true);
+                }
+
+                //第三象限
+                for (int i = 0; i < 5; i++) {
+                    startLocation = moveLatLng(location, -0.1 + i * 0.02, 0 - i * 0.02);
+                    options.position(startLocation);
+                    options.icon(icon);
+                    marker = mMap.addMarker(options);
+                    markerArray.add(marker);
+                    animateMarker(marker, startLocation, location, true);
+                }
+
+                //第二象限
+                for (int i = 0; i < 5; i++) {
+                    startLocation = moveLatLng(location, i * 0.02, -0.1 + i * 0.02);
+                    options.position(startLocation);
+                    options.icon(icon);
+                    marker = mMap.addMarker(options);
+                    markerArray.add(marker);
+                    animateMarker(marker, startLocation, location, true);
+                }
+
+            }
         }
-        /*
-        else if (v == buttonSearch) {
-            //画面下の検索ボタンが押されたとき
-
-            PlaceholderFragment f = new PlaceholderFragment();
-            android.app.FragmentTransaction fragmentTransaction =
-                    getFragmentManager().beginTransaction();
-
-            fragmentTransaction.replace(R.id.map, f);
-            //addToBackStackしておくこれでBackStackに登録される("戻る"が適応されるようになる)
-            //fragmentTransaction.addToBackStack(null);
-            fragmentTransaction.commit();
-        }*/
     }
 
     /**
@@ -500,41 +548,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         // アニメーションを開始します
         objectAnimator.start();
-    }
-
-    //マーカーを動かす
-    public void animateMarker(final Marker marker, final LatLng startPosition, final LatLng toPosition,
-                              final boolean hideMarker) {
-        final Handler handler = new Handler();
-        final long start = SystemClock.uptimeMillis();
-        Projection proj = mMap.getProjection();
-        //Point startPoint = proj.toScreenLocation(marker.getPosition());
-        //final LatLng startLatLng = proj.fromScreenLocation(startPoint);
-        final long duration = 5000;
-
-        final Interpolator interpolator = new LinearInterpolator();
-
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                long elapsed = SystemClock.uptimeMillis() - start;
-                float t = interpolator.getInterpolation((float) elapsed / duration);
-                double lng = t * toPosition.longitude + (1 - t) * startPosition.longitude;
-                double lat = t * toPosition.latitude + (1 - t) * startPosition.latitude;
-                marker.setPosition(new LatLng(lat, lng));
-
-                if (t < 1.0) {
-                    // Post again 16ms later.
-                    handler.postDelayed(this, 16);
-                } else {
-                    if (hideMarker) {
-                        marker.setVisible(false);
-                    } else {
-                        marker.setVisible(true);
-                    }
-                }
-            }
-        });
     }
 
     //マーカがタップされたときに表示するinfowindowのクラス
@@ -611,6 +624,85 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         //Google Mapの Zoom値を指定
         mMap.animateCamera(CameraUpdateFactory.zoomTo(15));
+    }
+
+
+    //マーカーを動かす
+    public void animateMarker(final Marker marker, final LatLng startPosition, final LatLng toPosition,
+                              final boolean hideMarker) {
+        final Handler handler = new Handler();
+        final long start = SystemClock.uptimeMillis();
+        //Projection proj = mMap.getProjection();
+        //Point startPoint = proj.toScreenLocation(marker.getPosition());
+        //final LatLng startLatLng = proj.fromScreenLocation(startPoint);
+        final long duration = 3000;
+
+        final Interpolator interpolator = new LinearInterpolator();
+
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                long elapsed = SystemClock.uptimeMillis() - start;
+                float t = interpolator.getInterpolation((float) elapsed / duration);
+                double lng = t * toPosition.longitude + (1 - t) * startPosition.longitude;
+                double lat = t * toPosition.latitude + (1 - t) * startPosition.latitude;
+                marker.setPosition(new LatLng(lat, lng));
+
+
+                if (t < 1.0) {
+                    // Post again 16ms later.
+                    handler.postDelayed(this, 16);
+                } else {
+                    if (hideMarker) {
+                        marker.remove();
+                        setIcon(toPosition);
+                    } else {
+                        marker.setVisible(true);
+                    }
+                }
+
+            }
+
+        });
+    }
+
+
+    //緯度経度をずらす
+    public LatLng moveLatLng(LatLng location, double x, double y) {
+        LatLng newLocation = new LatLng(location.latitude + x, location.longitude + y);
+        return newLocation;
+    }
+
+    public void setIcon(LatLng location) {
+        LatLng location2 = moveLatLng(location, 0, 12.0d / (60 * 60));
+        LatLng location3 = moveLatLng(location, 0, -12.0d / (60 * 60));
+
+        BitmapDescriptor icon = BitmapDescriptorFactory.fromResource(R.drawable.heart2);
+        BitmapDescriptor icon2 = BitmapDescriptorFactory.fromResource(R.drawable.boo);
+
+        // 貼り付設定
+        GroundOverlayOptions overlayOptions = new GroundOverlayOptions();
+        GroundOverlayOptions overlayOptions2 = new GroundOverlayOptions();
+        overlayOptions.image(icon);
+        overlayOptions2.image(icon2);
+
+        //　public GroundOverlayOptions anchor (float u, float v)
+        // (0,0):top-left, (0,1):bottom-left, (1,0):top-right, (1,1):bottom-right
+        //中心に表示(?)
+        overlayOptions.anchor(0.5f, 0.5f);
+        overlayOptions2.anchor(0.75f, 0.5f);
+
+        // 張り付け画像の大きさ メートル単位
+        // public GroundOverlayOptions	position(LatLng location, float width, float height)
+        overlayOptions.position(location2, 300f, 300f);
+        overlayOptions2.position(location3, 300f, 300f);
+
+        // マップに貼り付け・アルファを設定
+        GroundOverlay overlay = mMap.addGroundOverlay(overlayOptions);
+        GroundOverlay overlay2 = mMap.addGroundOverlay(overlayOptions2);
+        // 透明度
+        overlay.setTransparency(0.0F);
+        overlay2.setTransparency(0.0F);
     }
 
     @Override
