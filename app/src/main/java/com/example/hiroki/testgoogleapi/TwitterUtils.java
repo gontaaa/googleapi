@@ -28,6 +28,10 @@ public class TwitterUtils {
         String consumerKey = context.getString(R.string.twitter_consumer_key);
         String consumerSecret = context.getString(R.string.twitter_consumer_secret);
 
+        //一時的に
+       // consumerKey = null;
+        //consumerSecret = null;
+
         TwitterFactory factory = new TwitterFactory();
         Twitter twitter = factory.getInstance();
         twitter.setOAuthConsumer(consumerKey, consumerSecret);

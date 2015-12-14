@@ -44,10 +44,40 @@ public class SearchAsyncLoader extends AsyncTaskLoader<List<Status>> {
             // 検索文字列を設定する
             Query query = new Query(keyword);
             query.setLocale("ja");    // 日本語のtweetに限定する
-            query.setCount(20);        // 最大20tweetにする（デフォルトは15）
+            query.setCount(100);        // 最大20tweetにする（デフォルトは15）
+            query.resultType(Query.RECENT);
+
+            QueryResult result = null;
+
+            // 最大1500件（15ページ）なので15回ループ
+            for (int i = 1; i <= 15; i++) {
+                result = twitter.search(query);
+                System.out.println("ヒット数 : " + result.getTweets().size());
+                System.out.println("ページ数 : " + new Integer(i).toString());
+
+                /*
+                // 検索結果を見てみる
+                for (Status tweet : result.getTweets()) {
+                    // 本文
+                    String str = tweet.getText();
+                    java.util.Date hiduke = tweet.getCreatedAt();
+                    System.out.println(hiduke + str);
+                    // ハッシュタグとURLの削除
+
+                }
+                if (result.hasNext()) {
+                    query = result.nextQuery();
+                } else {
+                    break;
+                }
+                */
+                if(result.getTweets().size()<100){
+                    break;
+                }
+            }
 
             // 検索の実行
-            QueryResult result = this.twitter.search(query);
+            //QueryResult result = this.twitter.search(query);
 
             return result.getTweets();
 

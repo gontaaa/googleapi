@@ -1,30 +1,32 @@
 package com.example.hiroki.testgoogleapi;
 
-import android.app.Fragment;
-import android.app.LoaderManager;
-import android.app.ProgressDialog;
+import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.content.Intent;
-import android.content.Loader;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.SystemClock;
 import android.support.v4.app.FragmentActivity;
-import android.support.v4.app.FragmentTransaction;
 import android.util.Log;
-import android.view.LayoutInflater;
+import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.view.ViewGroup;
+import android.view.WindowManager;
+import android.view.animation.Interpolator;
+import android.view.animation.LinearInterpolator;
 import android.view.inputmethod.InputMethodManager;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ListView;
+import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -32,7 +34,9 @@ import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.GoogleMap.InfoWindowAdapter;
+import com.google.android.gms.maps.GoogleMap.OnMarkerClickListener;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.Projection;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
@@ -45,10 +49,6 @@ import java.util.List;
 import retrofit.Callback;
 import retrofit.RetrofitError;
 import retrofit.client.Response;
-import twitter4j.Status;
-import twitter4j.Twitter;
-import twitter4j.TwitterFactory;
-import twitter4j.conf.ConfigurationBuilder;
 
 //import android.location.LocationProvider;
 //import android.provider.Settings;
@@ -60,7 +60,6 @@ import twitter4j.conf.ConfigurationBuilder;
 //import android.location.LocationProvider;
 //import com.google.android.gms.maps.CameraUpdateFactory;
 //import android.widget.Toast;
-import com.google.android.gms.maps.GoogleMap.OnMarkerClickListener;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, LocationListener, OnClickListener {
 
@@ -105,6 +104,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     //hotpepperAPIで検索した店のURLを一時的に格納する変数
     private String link;
 
+    private PopupWindow popupWindow;
+
     //twitterの認証系
     private boolean twitterOauthOK = false;
     private static String consumerKey = null;
@@ -120,6 +121,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
 
+        /*
         //まずtwitterの認証を確認する
         twitterOauthOK = TwitterUtils.hasAccessToken(this);
 
@@ -139,6 +141,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             accessToken = TwitterUtils.loadAccessToken(this).getToken();
             accessTokenSecret = TwitterUtils.loadAccessToken(this).getTokenSecret();
         }
+        */
 
         mListAdapter = new ShopListAdapter(this);
         //mListView.setAdapter(mListAdapter);
@@ -202,8 +205,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         //mMap.setTrafficEnabled(true);
 
         //ボタンの設置
-        buttonSearch = (Button) findViewById(R.id.buttonSearch);
-        buttonSearch.setOnClickListener(this);
+        //buttonSearch = (Button) findViewById(R.id.buttonSearch);
+        //buttonSearch.setOnClickListener(this);
 
         buttonClear = (Button) findViewById(R.id.buttonClear);
         buttonClear.setOnClickListener(this);
@@ -308,10 +311,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             marker = mMap.addMarker(new MarkerOptions()
                                     .position(new LatLng(tmpShop.getLat(), tmpShop.getLng()))
                                     .title(tmpShop.getName())
-                                    .snippet("address:" + tmpShop.getAddress() + '\n'
-                                            + "open:" + tmpShop.getOpen() + '\n'
-                                            + "close:" + tmpShop.getClose())
-                                            // + "url:" + tmpShop.getUrl().getMobile())
+                                            // .snippet("address:" + tmpShop.getAddress() + '\n'
+                                            //        + "open:" + tmpShop.getOpen() + '\n'
+                                            //       + "close:" + tmpShop.getClose())
+                                            //      // + "url:" + tmpShop.getUrl().getMobile())
                                     .draggable(false));
 
                             //店のホームページのURLを格納
@@ -319,7 +322,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                             markerArray.add(marker); // リストに格納（削除する為に必要）
                             //infoWindowを作成
-                            mMap.setInfoWindowAdapter(new CustomInfoWindowAdapter());
+                           // mMap.setInfoWindowAdapter(new CustomInfoWindowAdapter());
 
                             //マーカにクリックリスナーをつける
                             mMap.setOnMarkerClickListener(new OnMarkerClickListener() {
@@ -331,11 +334,97 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                     //TODO ここに処理を加える(画面下になんか出すとか)
 
                                     //タップ確認のためトーストを表示
-                                    Toast.makeText(getApplicationContext(), "マーカータップ", Toast.LENGTH_LONG).show();
+                                    //Toast.makeText(getApplicationContext(), "マーカータップ", Toast.LENGTH_LONG).show();
                                     return false;
                                 }
                             });
 
+                            //クリックでポップアップウィンドウを表示
+                            mMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
+                                @Override
+                                public void onInfoWindowClick(Marker marker) {
+                                    popupWindow = new PopupWindow(MapsActivity.this);
+
+                                    View popupView
+                                            //= (LinearLayout) getLayoutInflater().inflate(R.layout.info_window_main, null);
+                                            = (LinearLayout) getLayoutInflater().inflate(R.layout.popup_window, null);
+
+                                    //popupwindow内のyesボタンが押された時
+                                    popupView.findViewById(R.id.yes_button).setOnClickListener(new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View v) {
+                                            // TODO リンク飛ばす処理
+                                            Uri uri = Uri.parse(link);
+                                            Intent i = new Intent(Intent.ACTION_VIEW,uri);
+                                            startActivity(i);
+                                            //Toast.makeText(MapsActivity.this, "hoge", Toast.LENGTH_SHORT).show();
+                                        }
+                                    });
+
+                                    //popupwindow内のtwitterボタンが押された時
+                                    popupView.findViewById(R.id.twitter_button).setOnClickListener(new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View v) {
+                                            //TODO twiter検索
+
+                                            //まずtwitterの認証を確認する
+                                            twitterOauthOK = TwitterUtils.hasAccessToken(MapsActivity.this);
+                                            //twitterOauthOK = false;
+                                            //未確認の時
+                                            if (!twitterOauthOK) {
+                                                Intent intent = new Intent(MapsActivity.this, TwitterOAuthActivity.class);
+                                                startActivity(intent);
+                                                //finish();
+                                            } else {
+                                                //確認済みのとき
+                                                System.out.println("TwitterUtils.hasAccessToken(this)="
+                                                        + TwitterUtils.hasAccessToken(MapsActivity.this));
+
+                                                //認証系の保存
+                                                consumerKey = TwitterUtils.getConsumerKey(MapsActivity.this);
+                                                consumerSecret = TwitterUtils.getConsumerSecret(MapsActivity.this);
+                                                accessToken = TwitterUtils.loadAccessToken(MapsActivity.this).getToken();
+                                                accessTokenSecret = TwitterUtils.loadAccessToken(MapsActivity.this).getTokenSecret();
+
+                                                //TODO twitter検索画面に遷移
+                                                Intent intent = new Intent(MapsActivity.this, TwitterSearch.class);
+                                                startActivity(intent);
+                                            }
+                                        }
+                                    });
+
+                                    //popupwindow内のnoボタンが押された時
+                                    popupView.findViewById(R.id.close_button).setOnClickListener(new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View v) {
+                                            if (popupWindow.isShowing()) {
+                                                popupWindow.dismiss();
+                                            }
+                                        }
+                                    });
+
+                                    //popupWindow.setWindowLayoutMode(
+                                    //LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                                    //popupWindow.setWindowLayoutType(0);
+                                    popupWindow.setContentView(popupView);
+
+                                    // タップ時に他のViewでキャッチされないための設定
+                                    popupWindow.setOutsideTouchable(true);
+                                    popupWindow.setFocusable(true);
+
+                                    float width = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 300, getResources().getDisplayMetrics());
+                                    popupWindow.setWindowLayoutMode((int) width, WindowManager.LayoutParams.WRAP_CONTENT);
+                                    popupWindow.setWidth((int) width);
+                                    popupWindow.setHeight(WindowManager.LayoutParams.WRAP_CONTENT);
+
+                                    popupWindow.showAtLocation(findViewById(R.id.map), Gravity.CENTER, 0, 0);
+                                    // TODO Auto-generated method stub
+                                    //Toast.makeText(getApplicationContext(), "インフォウィンドウクリック", Toast.LENGTH_LONG).show();
+
+                                    //ウィンドウの中身が徐々に浮かび上がる
+                                    animateAlpha(popupView);
+                                }
+                            });
 
                         }
                     } else {
@@ -361,20 +450,85 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
             markerArray.clear();
             Toast.makeText(this, "マーカーを削除しました", Toast.LENGTH_LONG).show();
-        } else if (v == buttonSearch) {
+        }
+        /*
+        else if (v == buttonSearch) {
             //画面下の検索ボタンが押されたとき
 
-            //TODO　検索も同時に行いたい
-            //twitter検索用のfragmentを生成
             PlaceholderFragment f = new PlaceholderFragment();
             android.app.FragmentTransaction fragmentTransaction =
                     getFragmentManager().beginTransaction();
 
             fragmentTransaction.replace(R.id.map, f);
             //addToBackStackしておくこれでBackStackに登録される("戻る"が適応されるようになる)
-            fragmentTransaction.addToBackStack(null);
+            //fragmentTransaction.addToBackStack(null);
             fragmentTransaction.commit();
-        }
+        }*/
+    }
+
+    /**
+     * 3秒かけてターゲットを表示
+     */
+    private void animateAlpha( View view ) {
+
+        // alphaプロパティを0fから1fに変化させます
+        ObjectAnimator objectAnimator = ObjectAnimator.ofFloat( view, "alpha", 0f, 1f );
+
+        // 3秒かけて実行させます
+        objectAnimator.setDuration(1500);
+
+        // アニメーションを開始します
+        objectAnimator.start();
+    }
+
+    /**
+     * X方向にターゲットを3秒かけて200移動する
+     */
+    private void animateTranslationX( Button button ) {
+
+        // translationXプロパティを0fから200fに変化させます
+        ObjectAnimator objectAnimator = ObjectAnimator.ofFloat( button, "translationX", 0f, 200f );
+
+        // 3秒かけて実行させます
+        objectAnimator.setDuration(3000);
+
+        // アニメーションを開始します
+        objectAnimator.start();
+    }
+
+    //マーカーを動かす
+    public void animateMarker(final Marker marker, final LatLng startPosition, final LatLng toPosition,
+                              final boolean hideMarker) {
+        final Handler handler = new Handler();
+        final long start = SystemClock.uptimeMillis();
+        Projection proj = mMap.getProjection();
+        //Point startPoint = proj.toScreenLocation(marker.getPosition());
+        //final LatLng startLatLng = proj.fromScreenLocation(startPoint);
+        final long duration = 5000;
+
+        final Interpolator interpolator = new LinearInterpolator();
+
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                long elapsed = SystemClock.uptimeMillis() - start;
+                float t = interpolator.getInterpolation((float) elapsed / duration);
+                double lng = t * toPosition.longitude + (1 - t) * startPosition.longitude;
+                double lat = t * toPosition.latitude + (1 - t) * startPosition.latitude;
+                marker.setPosition(new LatLng(lat, lng));
+
+                if (t < 1.0) {
+                    // Post again 16ms later.
+                    handler.postDelayed(this, 16);
+                } else {
+                    if (hideMarker) {
+                        marker.setVisible(false);
+                    } else {
+                        marker.setVisible(true);
+                    }
+                }
+            }
+        });
     }
 
     //マーカがタップされたときに表示するinfowindowのクラス
@@ -458,6 +612,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     /**
      * A placeholder fragment containing a simple view.
      */
+    /*
     public static class PlaceholderFragment extends Fragment implements LoaderManager.LoaderCallbacks<List<Status>> {
 
         // Twitterオブジェクト
@@ -565,9 +720,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             dialogDismiss();
         }
     }
+*/
 
     /*
-    private void replaceFragment(Fragment f) {
+    private void replaceFragment(Fragment0 f) {
         FragmentTransaction transaction =
                 getSupportFragmentManager().beginTransaction();
         transaction.replace(R.id.map, f);
@@ -576,6 +732,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }*/
 
     //androidの戻るが押された時の処理
+    /*
     public void onBackPressed() {
         int backStackCnt =
                 getFragmentManager().getBackStackEntryCount();
@@ -588,7 +745,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             //TODO 0のときはアプリの終了をさせたい
         }
     }
-
+    */
 
     @Override
     public void onProviderDisabled(String provider) {

@@ -1,21 +1,17 @@
 package com.example.hiroki.testgoogleapi;
 
+import android.content.Intent;
+import android.net.Uri;
+import android.os.AsyncTask;
+import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
+import android.view.View;
+import android.widget.Toast;
 
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
 import twitter4j.auth.AccessToken;
 import twitter4j.auth.RequestToken;
-
-import android.app.Activity;
-import android.content.Intent;
-import android.net.Uri;
-import android.os.AsyncTask;
-import android.os.Bundle;
-import android.view.View;
-import android.widget.Toast;
-
-import com.example.hiroki.testgoogleapi.TwitterUtils;
 
 //twitterのOAuth認証のためのクラス
 
@@ -101,8 +97,12 @@ public class TwitterOAuthActivity extends FragmentActivity {
             @Override
             protected AccessToken doInBackground(String... params) {
                 try {
-                    //キャンセルされた時、多分param[0]がnullになるのでエラー処理必要
-                    return mTwitter.getOAuthAccessToken(mRequestToken, params[0]);
+                    if(params[0]!=null){
+                        //キャンセルされた時、param[0]がnull
+                        System.out.println("params[0] = " + params[0]);
+                        return mTwitter.getOAuthAccessToken(mRequestToken, params[0]);
+                        //return mTwitter.getOAuthAccessToken(mRequestToken, verifier);
+                    }
                 } catch (TwitterException e) {
                     e.printStackTrace();
                 }
@@ -118,19 +118,27 @@ public class TwitterOAuthActivity extends FragmentActivity {
                 } else {
                     // 認証失敗。。。
                     showToast("認証失敗。。。");
+                    failureOAuth();
                 }
             }
         };
 
-        System.out.println("verifier" + verifier);
+        System.out.println("verifier " + verifier);
         task.execute(verifier);
     }
 
     private void successOAuth(AccessToken accessToken) {
         TwitterUtils.storeAccessToken(this, accessToken);
         System.out.println("successOAuth");
-        Intent intent = new Intent(this, MapsActivity.class);
-        startActivity(intent);
+        //Intent intent = new Intent(this, MapsActivity.class);
+        //startActivity(intent);
+        finish();
+    }
+
+    private void failureOAuth() {
+        System.out.println("failureOAuth");
+        //Intent intent = new Intent(this, MapsActivity.class);
+        //startActivity(intent);
         finish();
     }
 
