@@ -109,14 +109,14 @@ public class ApiGourmetResponse {
 
     public static class Url {
         //private String qr;
-        private String mobile;
-        // private String pc;
+        //private String mobile;
+        private String pc;
 
         // String getQr(){return qr;}
-        public String getMobile() {
-            return mobile;
+        //public String getMobile() {return mobile;}
+        public String getPc() {
+            return pc;
         }
-        // public String getPc(){return pc;}
     }
 /*
     public static class Url {

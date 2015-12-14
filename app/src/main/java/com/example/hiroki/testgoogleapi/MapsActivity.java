@@ -318,7 +318,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                     .draggable(false));
 
                             //店のホームページのURLを格納
-                            link = "url:" + tmpShop.getUrl().getMobile();
+                            link = tmpShop.getUrl().getPc();
 
                             markerArray.add(marker); // リストに格納（削除する為に必要）
                             //infoWindowを作成
@@ -354,10 +354,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                         @Override
                                         public void onClick(View v) {
                                             // TODO リンク飛ばす処理
-                                            Uri uri = Uri.parse(link);
-                                            Intent i = new Intent(Intent.ACTION_VIEW,uri);
-                                            startActivity(i);
-                                            //Toast.makeText(MapsActivity.this, "hoge", Toast.LENGTH_SHORT).show();
+                                            System.out.println("link = " + link);
+
+                                            try {
+                                                Uri uri = Uri.parse(link);
+                                                Intent i = new Intent(Intent.ACTION_VIEW, uri);
+                                                startActivity(i);
+                                                //Toast.makeText(MapsActivity.this, "hoge", Toast.LENGTH_SHORT).show();
+                                            } catch (Exception e) {
+                                                //データを処理できるアプリがインストールされていません
+                                            }
                                         }
                                     });
 
