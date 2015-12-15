@@ -33,6 +33,8 @@ import android.widget.Toast;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.GoogleMap.OnMapClickListener;
+import com.google.android.gms.maps.GoogleMap.OnMapLongClickListener;
 import com.google.android.gms.maps.GoogleMap.InfoWindowAdapter;
 import com.google.android.gms.maps.GoogleMap.OnMarkerClickListener;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -104,6 +106,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Button buttonSearch2;
     //画面上のエディトテキスト
     private EditText editText;
+
+    private Button smallbutton;
 
     //hotpepperAPIで検索した店のURLを一時的に格納する変数
     private String link;
@@ -221,6 +225,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         buttonSearch2 = (Button) findViewById(R.id.buttonSearch2);
         buttonSearch2.setOnClickListener(this);
 
+        //smallbutton = (Button) findViewById(R.id.smallbutton);
 
         // EditTextオブジェクトを取得
         editText = (EditText) findViewById(R.id.editText);
@@ -239,6 +244,41 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
         //editText.clearFocus();
+
+
+        if (mMap != null) {
+            // タップ時のイベントハンドラ登録
+            /*
+            mMap.setOnMapClickListener(new OnMapClickListener() {
+                @Override
+                public void onMapClick(LatLng point) {
+                    // TODO Auto-generated method stub
+                    Toast.makeText(getApplicationContext(),
+                            "タップ位置\n緯度：" + point.latitude + "\n経度:" + point.longitude,
+                            Toast.LENGTH_LONG).show();
+                }
+            });
+            */
+            // 長押し時のイベントハンドラ登録
+            mMap.setOnMapLongClickListener(new OnMapLongClickListener() {
+                @Override
+                public void onMapLongClick(LatLng point) {
+                    // TODO Auto-generated method stub
+
+                    // ピンを立てる
+                    LatLng position = new LatLng(point.latitude, point.longitude);
+                    MarkerOptions options = new MarkerOptions();
+                    options.position(position);
+                    options.title("タイトル");
+                    mMap.addMarker(options);
+
+                    Toast.makeText(getApplicationContext(),
+                            "長押し位置\n緯度：" + point.latitude + "\n経度:" + point.longitude,
+                            Toast.LENGTH_LONG).show();
+                }
+            });
+
+        }
 
         // 入力された文字を取得
         //String API_KEYWORD = editText.getText().toString();
@@ -620,10 +660,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         LatLng latLng = new LatLng(latitude, longitude);
 
         //Google Mapに現在地を表示
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+        //mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
 
         //Google Mapの Zoom値を指定
-        mMap.animateCamera(CameraUpdateFactory.zoomTo(15));
+        //mMap.animateCamera(CameraUpdateFactory.zoomTo(15));
     }
 
 

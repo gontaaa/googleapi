@@ -1,8 +1,10 @@
 package com.example.hiroki.testgoogleapi;
 
+import android.app.AlertDialog;
 import android.app.LoaderManager;
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Loader;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
@@ -74,9 +76,35 @@ public class TwitterSearch extends FragmentActivity implements LoaderManager.Loa
                 //editTextのフォーカスをはずす
                 editText.clearFocus();
                 keyword = editText.getText().toString();
-                //System.out.println("keyword = " + keyword);
-                // ローダーの開始
-                getLoaderManager().restartLoader(0, null, TwitterSearch.this);
+                System.out.println("keyword = " + keyword);
+
+                if (keyword.length() != 0) {
+                    // ローダーの開始
+                    getLoaderManager().restartLoader(0, null, TwitterSearch.this);
+                } else {
+                    // 確認ダイアログの生成
+                    AlertDialog.Builder alertDlg = new AlertDialog.Builder(TwitterSearch.this);
+                    alertDlg.setTitle("エラー");
+                    alertDlg.setMessage("検索文字を入力してください");
+                    alertDlg.setPositiveButton(
+                            "OK",
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                    // OK ボタンクリック処理
+                                }
+                            });
+                    /*
+                    alertDlg.setNegativeButton(
+                             "Cancel",
+                             new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                     // Cancel ボタンクリック処理
+                                }
+                             });
+                     */
+                    // 表示
+                    alertDlg.create().show();
+                }
             }
         });
 
@@ -169,9 +197,58 @@ public class TwitterSearch extends FragmentActivity implements LoaderManager.Loa
                 adapter.add(tweet.getText());
             }
 
+            if (adapter.isEmpty()) {
+                // 確認ダイアログの生成
+                AlertDialog.Builder alertDlg = new AlertDialog.Builder(TwitterSearch.this);
+                alertDlg.setTitle("確認");
+                alertDlg.setMessage("検索結果がありませんでした。");
+                alertDlg.setPositiveButton(
+                        "OK",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                // OK ボタンクリック処理
+                            }
+                        });
+                    /*
+                    alertDlg.setNegativeButton(
+                             "Cancel",
+                             new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                     // Cancel ボタンクリック処理
+                                }
+                             });
+                     */
+                // 表示
+                alertDlg.create().show();
+            }
+
             // ListViewにアダプターをセットする
             //((ListView) getView().findViewById(R.id.listView1)).setAdapter(adapter);
             ((ListView) findViewById(R.id.listView1)).setAdapter(adapter);
+        } else {
+            //TODO
+            // 確認ダイアログの生成
+            AlertDialog.Builder alertDlg = new AlertDialog.Builder(TwitterSearch.this);
+            alertDlg.setTitle("");
+            alertDlg.setMessage("");
+            alertDlg.setPositiveButton(
+                    "閉じる",
+                    new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            // OK ボタンクリック処理
+                        }
+                    });
+                    /*
+                    alertDlg.setNegativeButton(
+                             "Cancel",
+                             new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                     // Cancel ボタンクリック処理
+                                }
+                             });
+                     */
+            // 表示
+            alertDlg.create().show();
         }
         // ローディングダイアログの消去
         dialogDismiss();
