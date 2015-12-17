@@ -33,12 +33,11 @@ import android.widget.Toast;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.GoogleMap.OnMapClickListener;
-import com.google.android.gms.maps.GoogleMap.OnMapLongClickListener;
 import com.google.android.gms.maps.GoogleMap.InfoWindowAdapter;
+import com.google.android.gms.maps.GoogleMap.OnMapLongClickListener;
 import com.google.android.gms.maps.GoogleMap.OnMarkerClickListener;
+import com.google.android.gms.maps.GoogleMap.OnMarkerDragListener;
 import com.google.android.gms.maps.OnMapReadyCallback;
-import com.google.android.gms.maps.Projection;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
@@ -95,8 +94,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     //マーカーのリスト
     private List<Marker> markerArray = new ArrayList<Marker>();
+    //ピンのリスト
+    private List<Marker> pinArray = new ArrayList<Marker>();
+
     //マーカー
     private Marker marker = null;
+    //ピン
+    private Marker pin = null;
 
     //画面下の検索ボタン
     private Button buttonSearch;
@@ -195,7 +199,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-
         // Add a marker in Sydney and move the camera
         /*
         LatLng sydney = new LatLng(-34, 151);
@@ -265,20 +268,77 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 public void onMapLongClick(LatLng point) {
                     // TODO Auto-generated method stub
 
+                    if (pinArray.size() != 0) {
+                        // 既存のマーカーを消す処理
+                        for (int i = 0; i < pinArray.size(); i++) {
+                            pinArray.get(i).remove();
+                        }
+                        pinArray.clear();
+                    }
+
                     // ピンを立てる
                     LatLng position = new LatLng(point.latitude, point.longitude);
-                    MarkerOptions options = new MarkerOptions();
-                    options.position(position);
-                    options.title("タイトル");
-                    mMap.addMarker(options);
+                    BitmapDescriptor icon = BitmapDescriptorFactory.fromResource(R.drawable.focuspin);
+                    pin = mMap.addMarker(new MarkerOptions()
+                            .position(position)
+                            .icon(icon)
+                                    //.title(tmpShop.getName())
+                            .draggable(true));
+                    pinArray.add(pin);
 
                     Toast.makeText(getApplicationContext(),
-                            "長押し位置\n緯度：" + point.latitude + "\n経度:" + point.longitude,
+                            "ピンの位置\n緯度：" + point.latitude + "\n経度:" + point.longitude,
                             Toast.LENGTH_LONG).show();
+
+                    // タップ時のイベントハンドラ登録
+                    /*
+                    mMap.setOnMarkerClickListener(new OnMarkerClickListener() {
+                        @Override
+                        public boolean onMarkerClick(Marker marker) {
+                            // TODO Auto-generated method stub
+                            Toast.makeText(getApplicationContext(), "マーカータップ", Toast.LENGTH_LONG).show();
+                            return false;
+                            }
+                        });
+                    */
+
+                    //検索するピンの位置
+                    nowLat = point.latitude;
+                    nowLon = point.longitude;
+
+                    // ドラッグ時のイベントハンドラ登録
+                    mMap.setOnMarkerDragListener(new OnMarkerDragListener() {
+                        @Override
+                        public void onMarkerDrag(Marker marker) {
+                            // TODO Auto-generated method stub
+                            // Toast.makeText(getApplicationContext(), "マーカードラッグ中", Toast.LENGTH_SHORT).show();
+                        }
+
+                        @Override
+                        public void onMarkerDragEnd(Marker marker) {
+                            // TODO Auto-generated method stub
+                            //検索するピンの位置
+                            nowLat = marker.getPosition().latitude;
+                            nowLon = marker.getPosition().longitude;
+                            Toast.makeText(getApplicationContext(),
+                                    "ピンの位置\n緯度：" + nowLat + "\n経度:" + nowLon,
+                                    Toast.LENGTH_LONG).show();
+                            //Toast.makeText(getApplicationContext(), "マーカードラッグ終了", Toast.LENGTH_LONG).show();
+                        }
+
+                        @Override
+                        public void onMarkerDragStart(Marker marker) {
+                            // TODO Auto-generated method stub
+                            //Toast.makeText(getApplicationContext(), "マーカードラッグ開始", Toast.LENGTH_LONG).show();
+                        }
+                    });
+
+
                 }
             });
 
         }
+
 
         // 入力された文字を取得
         //String API_KEYWORD = editText.getText().toString();
@@ -295,6 +355,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             onLocationChanged(location);
         }
         locationManager.requestLocationUpdates(provider, 20000, 0, this);
+
+        //現在位置からLatLng objectを生成
+        LatLng latLng = new LatLng(latitude, longitude);
+        //Google Mapに現在地を表示
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+        //Google Mapの Zoom値を指定
+        mMap.animateCamera(CameraUpdateFactory.zoomTo(15));
     }
     //航空写真
     //mMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
@@ -317,13 +384,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             //入力された検索キーワードをセット(ない場合も大丈夫)
             API_KEYWORD = editText.getText().toString();
 
-            //地図の中心地の位置を取得
-            LatLng latLng = mMap.getCameraPosition().target;
-            //地図の中心点の緯度・経度を取得して格納
-            nowLat = latLng.latitude;
-            nowLon = latLng.longitude;
-            //表示
-            Log.d("TestGoogleAPI", String.valueOf(nowLat) + '\n' + String.valueOf(nowLon));
+            //
+            if (pinArray.size() == 0) {
+                //地図の中心地の位置を取得
+                LatLng latLng = mMap.getCameraPosition().target;
+                //地図の中心点の緯度・経度を取得して格納
+                nowLat = latLng.latitude;
+                nowLon = latLng.longitude;
+                //表示
+                //Log.d("TestGoogleAPI", String.valueOf(nowLat) + '\n' + String.valueOf(nowLon));
+            }
 
             //APIのインターフェースを作成
             ApiInterface api = ApiClientManager.create(ApiInterface.class);
@@ -503,6 +573,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 markerArray.get(i).remove();
             }
             markerArray.clear();
+
+            //マーカが削除されたので座標情報も削除
+            location = null;
+
             Toast.makeText(this, "マーカーを削除しました", Toast.LENGTH_LONG).show();
         } else if (v == buttonSearch) {
 
