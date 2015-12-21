@@ -49,7 +49,9 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import retrofit.Callback;
 import retrofit.RetrofitError;
@@ -93,9 +95,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private ShopListAdapter mListAdapter;
 
     //マーカーのリスト
-    private List<Marker> markerArray = new ArrayList<Marker>();
+    private Map<Marker, String> markerArray = new HashMap<Marker, String>();
+    private List<Marker> markerArray2 = new ArrayList<Marker>();
     //ピンのリスト
     private List<Marker> pinArray = new ArrayList<Marker>();
+
 
     //マーカー
     private Marker marker = null;
@@ -135,6 +139,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+
+        //TODO お気に入りリスト、検索履歴リスト
 
         /*
         //まずtwitterの認証を確認する
@@ -431,13 +437,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                             // .snippet("address:" + tmpShop.getAddress() + '\n'
                                             //        + "open:" + tmpShop.getOpen() + '\n'
                                             //       + "close:" + tmpShop.getClose())
-                                            //      // + "url:" + tmpShop.getUrl().getMobile())
+                                            //.snippet("url:" + tmpShop.getUrl().getPc())
                                     .draggable(false));
 
                             //店のホームページのURLを格納
-                            link = tmpShop.getUrl().getPc();
+                            //link = tmpShop.getUrl().getPc();
 
-                            markerArray.add(marker); // リストに格納（削除する為に必要）
+                            markerArray.put(marker, tmpShop.getUrl().getPc()); // リストに格納（削除する為に必要）
                             //infoWindowを作成
                            // mMap.setInfoWindowAdapter(new CustomInfoWindowAdapter());
 
@@ -460,20 +466,30 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             //クリックでポップアップウィンドウを表示
                             mMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
                                 @Override
-                                public void onInfoWindowClick(Marker marker) {
+                                public void onInfoWindowClick(final Marker marker) {
                                     popupWindow = new PopupWindow(MapsActivity.this);
 
                                     View popupView
                                             //= (LinearLayout) getLayoutInflater().inflate(R.layout.info_window_main, null);
                                             = (LinearLayout) getLayoutInflater().inflate(R.layout.popup_window, null);
 
+                                    /*
+                                    for (int i = 0; i < mListAdapter.getCount(); i++){
+                                        //Object型の店情報をキャスト
+                                        ApiGourmetResponse.Shop tmpShop = ((ApiGourmetResponse.Shop) mListAdapter.getItem(i));
+                                        if(tmpShop.getName().equals(marker.getTitle())){
+                                            link = tmpShop.getUrl().getPc();
+                                        }
+                                    }*/
+
                                     //popupwindow内のyesボタンが押された時
                                     popupView.findViewById(R.id.yes_button).setOnClickListener(new View.OnClickListener() {
                                         @Override
                                         public void onClick(View v) {
                                             // TODO リンク飛ばす処理
-                                            System.out.println("link = " + link);
 
+                                            link = markerArray.get(marker);
+                                            //System.out.println("link = " + link);
                                             try {
                                                 Uri uri = Uri.parse(link);
                                                 Intent i = new Intent(Intent.ACTION_VIEW, uri);
@@ -570,7 +586,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             Log.d("buttonClear", "clear");
             // 既存のマーカーを消す処理
             for (int i = 0; i < markerArray.size(); i++) {
-                markerArray.get(i).remove();
+                //    markerArray.get(i).remove();
             }
             markerArray.clear();
 
@@ -596,7 +612,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     options.position(startLocation);
                     options.icon(icon);
                     marker = mMap.addMarker(options);
-                    markerArray.add(marker);
+                    markerArray2.add(marker);
                     animateMarker(marker, startLocation, location, true);
                 }
 
@@ -606,7 +622,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     options.position(startLocation);
                     options.icon(icon);
                     marker = mMap.addMarker(options);
-                    markerArray.add(marker);
+                    markerArray2.add(marker);
                     animateMarker(marker, startLocation, location, true);
                 }
 
@@ -616,7 +632,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     options.position(startLocation);
                     options.icon(icon);
                     marker = mMap.addMarker(options);
-                    markerArray.add(marker);
+                    markerArray2.add(marker);
                     animateMarker(marker, startLocation, location, true);
                 }
 
@@ -626,7 +642,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     options.position(startLocation);
                     options.icon(icon);
                     marker = mMap.addMarker(options);
-                    markerArray.add(marker);
+                    markerArray2.add(marker);
                     animateMarker(marker, startLocation, location, true);
                 }
 
