@@ -14,8 +14,8 @@ public class ShowDataBase extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        //setContentView(R.layout.show_database);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.show_database);
+        //setContentView(R.layout.activity_main);
 
 
         LinearLayout layout = new LinearLayout(this);
@@ -27,15 +27,19 @@ public class ShowDataBase extends Activity {
 
         // queryメソッドの実行例
         //query(テーブル名,column(nullなら全部),selectionArgs,groupby,having,orderby)
-        Cursor c = db.query("person", new String[]{"name", "age"}, null,
+        //Cursor c = db.query("person", new String[]{"name", "link","latitude","longitude"}, null,
+        //        null, null, null, null);
+        Cursor c = db.query("person", null, null,
                 null, null, null, null);
 
         boolean mov = c.moveToFirst();
         //データの表示
         while (mov) {
             TextView textView = new TextView(this);
-            textView.setText(String.format("%s : %d歳", c.getString(0),
-                    c.getInt(1)));
+            //textView.setText(String.format("%s : %s (%.10f,%.10f)", c.getString(0),
+            //        c.getString(1), c.getDouble(2), c.getDouble(3)));
+            textView.setText(String.format("%s : %s ", c.getString(0),
+                    c.getString(1)));
             mov = c.moveToNext();
             layout.addView(textView);
         }

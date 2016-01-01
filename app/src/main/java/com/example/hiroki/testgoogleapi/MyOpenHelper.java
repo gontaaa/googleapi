@@ -10,14 +10,14 @@ import android.database.sqlite.SQLiteOpenHelper;
 public class MyOpenHelper extends SQLiteOpenHelper {
     //コンストラクタ
     public MyOpenHelper(Context context) {
-        super(context, "NameAgeDB", null, 1);
+        super(context, "NameShopDB", null, 1);
     }
 
     //SQL文実行
     @Override
     public void onCreate(SQLiteDatabase db) {
         db.execSQL("create table person(" + " name text not null,"
-                + "age text" + ");");
+                + "link text," + "latitude real," + "longitude real" + ");");
     }
 
     @Override

@@ -1,8 +1,10 @@
 package com.example.hiroki.testgoogleapi;
 
 import android.animation.ObjectAnimator;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.database.sqlite.SQLiteDatabase;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
@@ -20,8 +22,10 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.WindowManager;
+import android.view.animation.Animation;
 import android.view.animation.Interpolator;
 import android.view.animation.LinearInterpolator;
+import android.view.animation.TranslateAnimation;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
@@ -114,6 +118,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Button buttonSearch2;
     //画面上のエディトテキスト
     private EditText editText;
+    //
+    private Button referenceButton;
+
+    //private SearchView mSearchView;
 
     private Button smallbutton;
 
@@ -134,6 +142,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     //現在タップしているマーカーの位置情報を格納しておく変数
     private LatLng location;
+
+    private int tmpCount = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -224,6 +234,29 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         //渋滞情報
         //mMap.setTrafficEnabled(true);
 
+        /*
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        toolbar.inflateMenu(R.menu.search);
+
+        mSearchView = (SearchView) toolbar.getMenu().findItem(R.id.menu_search).getActionView();
+        mSearchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String s) {
+                return false;
+            }
+            @Override
+            public boolean onQueryTextChange(String s) {
+                return false;
+            }
+        });
+        Menu menu = toolbar.getMenu();
+        MenuItem item = menu.add("検索");
+        item.setIcon(R.drawable.ic_menu_search);
+        item.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        item.setActionView(mSearchView);
+        //mSearchView.setIconfied(false);
+*/
+
         //ボタンの設置
         buttonSearch = (Button) findViewById(R.id.buttonSearch);
         buttonSearch.setOnClickListener(this);
@@ -233,6 +266,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         buttonSearch2 = (Button) findViewById(R.id.buttonSearch2);
         buttonSearch2.setOnClickListener(this);
+
+        referenceButton = (Button) findViewById(R.id.referenceButton);
+        referenceButton.setOnClickListener(this);
+
+        //searchView = (Button) findViewById(R.id.searchView);
+        //searchView.setOnClickListener(this);
 
         //smallbutton = (Button) findViewById(R.id.smallbutton);
 
@@ -533,6 +572,35 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                         }
                                     });
 
+                                    //popupwindow内のfavボタンが押された時
+                                    popupView.findViewById(R.id.fav_button).setOnClickListener(new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View v) {
+                                            //TODO fav
+                                            MyOpenHelper helper = new MyOpenHelper(MapsActivity.this);
+                                            final SQLiteDatabase db = helper.getWritableDatabase();
+
+                                            String name = marker.getTitle();
+                                            tmpCount++;
+
+                                            ContentValues insertValues = new ContentValues();
+                                            insertValues.put("name", name);
+                                            insertValues.put("link", markerArray.get(marker));
+                                            insertValues.put("latitude", marker.getPosition().latitude);
+                                            insertValues.put("longitude", marker.getPosition().longitude);
+
+                                            System.out.println("tmpCount = " + tmpCount);
+                                            if (tmpCount % 10 != 0) {
+                                                System.out.println("insertValues = " + name + markerArray.get(marker)
+                                                        + marker.getPosition().latitude
+                                                        + marker.getPosition().longitude);
+                                                long id = db.insert("person", null, insertValues);
+                                            } else {
+                                                db.delete("person", null, null);
+                                            }
+                                        }
+                                    });
+
                                     //popupwindow内のnoボタンが押された時
                                     popupView.findViewById(R.id.close_button).setOnClickListener(new View.OnClickListener() {
                                         @Override
@@ -647,6 +715,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
 
             }
+        } else if (v == referenceButton) {
+            Intent dbIntent = new Intent(MapsActivity.this,
+                    ShowDataBase.class);
+            startActivity(dbIntent);
         }
     }
 
