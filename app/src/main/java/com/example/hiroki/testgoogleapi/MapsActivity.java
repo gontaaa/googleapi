@@ -99,14 +99,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public double nowLat = 0;
     public double nowLon = 0;
 
-    private ListView mListView;
+    //private ListView mListView;
     //hotpepperで検索したお店のデータを格納するクラスの変数
     private ShopListAdapter mListAdapter;
 
     //マーカーのリスト
-    private Map<Marker, String> markerArray = new HashMap<Marker, String>();
-    private Map<String, Bitmap> photoArray = new HashMap<String, Bitmap>();
     private List<Marker> arrayMarker = new ArrayList<Marker>();
+    //markerごとのURLを保存
+    private Map<Marker, String> markerArray = new HashMap<Marker, String>();
+    //店名ごとの写真を保存
+    private Map<String, Bitmap> photoArray = new HashMap<String, Bitmap>();
+    //
     private List<Marker> markerArray2 = new ArrayList<Marker>();
     //ピンのリスト
     private List<Marker> pinArray = new ArrayList<Marker>();
@@ -125,16 +128,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Button buttonSearch2;
     //画面上のエディトテキスト
     private EditText editText;
-    //
+    //お気に入りしたデータを参照するボタン
     private Button referenceButton;
 
     //private SearchView mSearchView;
-
-    private Button smallbutton;
+    //private Button smallbutton;
 
     //hotpepperAPIで検索した店のURLを一時的に格納する変数
     private String link;
 
+    //
     private PopupWindow popupWindow;
 
     //twitterの認証系
@@ -152,6 +155,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private int tmpCount = 0;
 
+    //非同期処理を同期するための変数
     private final CountDownLatch mDone = new CountDownLatch(1);
 
     @Override
@@ -361,6 +365,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     nowLat = point.latitude;
                     nowLon = point.longitude;
 
+                    //TODO クリックできないようにする
+
                     // ドラッグ時のイベントハンドラ登録
                     mMap.setOnMarkerDragListener(new OnMarkerDragListener() {
                         @Override
@@ -439,7 +445,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             //入力された検索キーワードをセット(ない場合も大丈夫)
             API_KEYWORD = editText.getText().toString();
 
-            //
+            //TODO 現在地に変える？
             if (pinArray.size() == 0) {
                 //地図の中心地の位置を取得
                 LatLng latLng = mMap.getCameraPosition().target;
@@ -472,11 +478,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         Toast.makeText(getBaseContext(), text, Toast.LENGTH_LONG).show();
                         //Log.d("ListSize", String.valueOf(mListAdapter.getCount()));
 
+                        //インデックス
                         int j=0;
                         int tmpcount=-1;
+                        //非同期処理の同期で画像の読み込みを行う
                         while(j<mListAdapter.getCount()){
-
+                            //非同期処理の同期後に実行するためのif文
                             if(tmpcount!=j) {
+                                //画像を読み込んで店名ごとにphotoArrayにbitmapとして格納
                                 try {
                                     tmpcount=j;
                                     final ApiGourmetResponse.Shop tmpShop = ((ApiGourmetResponse.Shop) mListAdapter.getItem(j));
@@ -494,9 +503,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                         }
                                     });
                                 } finally {
+                                    //終了後にカウントダウン
                                     mDone.countDown();
                                 }
                             }
+                            //カウントダウンされたら次の読み込みをするためにインデックス変更
                             try {
                                 mDone.await();
                                 j++;
@@ -511,7 +522,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             //Object型の店情報をキャスト
                             ApiGourmetResponse.Shop tmpShop = ((ApiGourmetResponse.Shop) mListAdapter.getItem(i));
 
-                            //マーカをつける、マーカーに情報の追加(店名、住所、開店時間、閉店時間)
+                            //マーカをつける、マーカーに情報の追加(店名、(画像のURL))
                             marker = mMap.addMarker(new MarkerOptions()
                                     .position(new LatLng(tmpShop.getLat(), tmpShop.getLng()))
                                     .title(tmpShop.getName())
@@ -527,8 +538,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             System.out.println("name = "+tmpShop.getName());
                             System.out.println("photoimage = " + tmpShop.getPhoto().getPc().getS());
 
-                            arrayMarker.add(marker);
-                            markerArray.put(marker, tmpShop.getUrl().getPc()); // リストに格納（削除する為に必要）
+                            arrayMarker.add(marker);// リストに格納（削除する為に必要）
+                            markerArray.put(marker, tmpShop.getUrl().getPc()); //店のurlをマーカーごとに格納
 
                             /*
                             String mainImageUrl = marker.getSnippet();
@@ -554,7 +565,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             } catch(InterruptedException e) {
                             }
 */
-                            //TODO 画像が表示されない
                             //infoWindowを作成
                             mMap.setInfoWindowAdapter(new CustomInfoWindowAdapter());
 
@@ -564,12 +574,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                 public boolean onMarkerClick(Marker marker) {
                                     //twitter検索のために店名を取得しておく
                                     keyword = marker.getTitle();
-
                                     location = marker.getPosition();
-                                    //TODO ここに処理を加える(画面下になんか出すとか)
-
-                                    //タップ確認のためトーストを表示
-                                    //Toast.makeText(getApplicationContext(), "マーカータップ", Toast.LENGTH_LONG).show();
                                     return false;
                                 }
                             });
@@ -579,28 +584,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                 @Override
                                 public void onInfoWindowClick(final Marker marker) {
                                     popupWindow = new PopupWindow(MapsActivity.this);
-
                                     View popupView
-                                            //= (LinearLayout) getLayoutInflater().inflate(R.layout.info_window_main, null);
                                             = (LinearLayout) getLayoutInflater().inflate(R.layout.popup_window, null);
-
-                                    /*
-                                    for (int i = 0; i < mListAdapter.getCount(); i++){
-                                        //Object型の店情報をキャスト
-                                        ApiGourmetResponse.Shop tmpShop = ((ApiGourmetResponse.Shop) mListAdapter.getItem(i));
-                                        if(tmpShop.getName().equals(marker.getTitle())){
-                                            link = tmpShop.getUrl().getPc();
-                                        }
-                                    }*/
 
                                     //popupwindow内のyesボタンが押された時
                                     popupView.findViewById(R.id.yes_button).setOnClickListener(new View.OnClickListener() {
                                         @Override
                                         public void onClick(View v) {
-                                            // TODO リンク飛ばす処理
-
+                                            //markerArrayから格納していたURLを取得
                                             link = markerArray.get(marker);
-                                            //System.out.println("link = " + link);
+                                            //インテントを使いhomepageにアクセス
                                             try {
                                                 Uri uri = Uri.parse(link);
                                                 Intent i = new Intent(Intent.ACTION_VIEW, uri);
@@ -637,7 +630,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                                 accessToken = TwitterUtils.loadAccessToken(MapsActivity.this).getToken();
                                                 accessTokenSecret = TwitterUtils.loadAccessToken(MapsActivity.this).getTokenSecret();
 
-                                                //TODO twitter検索画面に遷移
+                                                //検索画面に遷移
                                                 Intent intent = new Intent(MapsActivity.this, TwitterSearch.class);
                                                 startActivity(intent);
                                             }
@@ -649,12 +642,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                         @Override
                                         public void onClick(View v) {
                                             //TODO fav
+                                            //DBの設定
                                             MyOpenHelper helper = new MyOpenHelper(MapsActivity.this);
                                             final SQLiteDatabase db = helper.getWritableDatabase();
 
+                                            //店名をnameに格納
                                             String name = marker.getTitle();
                                             tmpCount++;
 
+                                            //挿入項目を作成
                                             ContentValues insertValues = new ContentValues();
                                             insertValues.put("name", name);
                                             insertValues.put("link", markerArray.get(marker));
@@ -669,8 +665,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                                         + marker.getPosition().longitude
                                                         //+ marker.getSnippet()
                                                 );
+                                                //DBにデータを挿入
                                                 long id = db.insert("person", null, insertValues);
                                             } else {
+                                                //DBを削除
                                                 db.delete("person", null, null);
                                             }
                                         }
@@ -680,6 +678,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                     popupView.findViewById(R.id.close_button).setOnClickListener(new View.OnClickListener() {
                                         @Override
                                         public void onClick(View v) {
+                                            //popupwindowを閉じる
                                             if (popupWindow.isShowing()) {
                                                 popupWindow.dismiss();
                                             }
@@ -792,6 +791,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             }
         } else if (v == referenceButton) {
+            //fabしたDBを表示
             Intent dbIntent = new Intent(MapsActivity.this,
                     ShowDataBase.class);
             startActivity(dbIntent);
@@ -832,7 +832,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     class CustomInfoWindowAdapter implements InfoWindowAdapter {
         private final View infoWindow;
         ImageView thumbnail_image1 = new ImageView(MapsActivity.this);
-        AQuery aQuery;
+        //AQuery aQuery;
 
         //画面の作成
         CustomInfoWindowAdapter() {
@@ -841,12 +841,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         //infowindow内のビューの追加
         public View getInfoWindow(Marker marker) {
+            //店名を表示
             String title = marker.getTitle();
             TextView textViewTitle = (TextView) infoWindow.findViewById(R.id.title);
             textViewTitle.setText(title);
 
-            //TODO 写真見れない
-
+            //保存しておいた店の画像表示
             thumbnail_image1 = (ImageView) infoWindow.findViewById(R.id.thumbnail_image1);
             thumbnail_image1.setImageBitmap(photoArray.get(marker.getTitle()));
             /*
