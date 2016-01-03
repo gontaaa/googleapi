@@ -1,42 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:background="#FFFFFF">
+    <!--
     android:orientation="vertical"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:background="#FFFFFF">
+    android:background="#FFFFFF"
+    -->
+
     <!--
     android:background="@drawable/nine_patch_sample2"
     -->
+
+    <ImageView
+        android:id="@+id/thumbnail_image1"
+        android:layout_width="58dp"
+        android:layout_height="58dp"
+        android:layout_marginRight="12dp"
+        android:scaleType="centerCrop"
+        android:src="@android:color/black"/>
+
+
     <TextView
         android:id="@+id/title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:textSize="14sp" />
-    <!--
-        <ImageView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@drawable/ic_launcher" >
-        </ImageView>
-    -->
-    <TextView
-        android:id="@+id/snippet"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textColor="#333333"
-        android:textSize="10sp" />
+        android:layout_gravity="center_vertical"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textSize="14sp"/>
 
-    <TextView
-        android:id="@+id/link"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textColor="#333333"
-        android:textSize="10sp"
-        android:autoLink="web"
-        android:clickable="true"
-        android:onClick="testToast" />
 
     <!--
     <Button
@@ -53,4 +50,38 @@
     android:layout_height="match_parent">
 
 </LinearLayout>
+-->
+
+<!--
+<TextView
+android:id="@+id/title"
+android:layout_width="wrap_content"
+android:layout_height="wrap_content"
+android:layout_gravity="center_horizontal"
+android:textSize="14sp" />
+-->
+    <!--
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_launcher" >
+        </ImageView>
+    -->
+<!--
+<TextView
+android:id="@+id/snippet"
+android:layout_width="wrap_content"
+android:layout_height="wrap_content"
+android:textColor="#333333"
+android:textSize="10sp" />
+
+<TextView
+android:id="@+id/link"
+android:layout_width="wrap_content"
+android:layout_height="wrap_content"
+android:textColor="#333333"
+android:textSize="10sp"
+android:autoLink="web"
+android:clickable="true"
+android:onClick="testToast" />
 -->

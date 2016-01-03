@@ -57,6 +57,7 @@ public class ApiGourmetResponse {
         private String open;
         private String close;
         private Url urls;
+        private Photo photo;
         // private List<Url> urls;
 
         public String getId() {
@@ -105,6 +106,9 @@ public class ApiGourmetResponse {
         //public List<Url> getUrl() {
         //  return urls;
         //}
+        public Photo getPhoto() {
+            return photo;
+        }
     }
 
     public static class Url {
@@ -116,6 +120,20 @@ public class ApiGourmetResponse {
         //public String getMobile() {return mobile;}
         public String getPc() {
             return pc;
+        }
+    }
+
+    public static class Photo{
+        private PhotoPc pc;
+        public PhotoPc getPc() {
+            return pc;
+        }
+    }
+
+    public static class PhotoPc{
+        private String s;
+        public String getS() {
+            return s;
         }
     }
 /*

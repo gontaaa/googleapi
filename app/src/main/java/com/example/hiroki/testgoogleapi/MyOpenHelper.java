@@ -17,7 +17,9 @@ public class MyOpenHelper extends SQLiteOpenHelper {
     @Override
     public void onCreate(SQLiteDatabase db) {
         db.execSQL("create table person(" + " name text not null,"
-                + "link text," + "latitude real," + "longitude real" + ");");
+                + "link text," + "latitude real," + "longitude real" +
+                //"photo text" +
+                ");");
     }
 
     @Override

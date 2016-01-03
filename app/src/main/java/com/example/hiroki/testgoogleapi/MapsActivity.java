@@ -5,6 +5,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Bitmap;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
@@ -22,18 +23,19 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.WindowManager;
-import android.view.animation.Animation;
 import android.view.animation.Interpolator;
 import android.view.animation.LinearInterpolator;
-import android.view.animation.TranslateAnimation;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.PopupWindow;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.androidquery.AQuery;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -51,11 +53,14 @@ import com.google.android.gms.maps.model.GroundOverlayOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.nostra13.universalimageloader.core.ImageLoader;
+import com.nostra13.universalimageloader.core.listener.SimpleImageLoadingListener;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 
 import retrofit.Callback;
 import retrofit.RetrofitError;
@@ -94,12 +99,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public double nowLat = 0;
     public double nowLon = 0;
 
-    //private ListView mListView;
+    private ListView mListView;
     //hotpepperで検索したお店のデータを格納するクラスの変数
     private ShopListAdapter mListAdapter;
 
     //マーカーのリスト
     private Map<Marker, String> markerArray = new HashMap<Marker, String>();
+    private Map<String, Bitmap> photoArray = new HashMap<String, Bitmap>();
+    private List<Marker> arrayMarker = new ArrayList<Marker>();
     private List<Marker> markerArray2 = new ArrayList<Marker>();
     //ピンのリスト
     private List<Marker> pinArray = new ArrayList<Marker>();
@@ -145,6 +152,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private int tmpCount = 0;
 
+    private final CountDownLatch mDone = new CountDownLatch(1);
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -174,6 +183,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         */
 
+        //mListView = (ListView) findViewById(R.id.list_view);
         mListAdapter = new ShopListAdapter(this);
         //mListView.setAdapter(mListAdapter);
 
@@ -462,6 +472,38 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         Toast.makeText(getBaseContext(), text, Toast.LENGTH_LONG).show();
                         //Log.d("ListSize", String.valueOf(mListAdapter.getCount()));
 
+                        int j=0;
+                        int tmpcount=-1;
+                        while(j<mListAdapter.getCount()){
+
+                            if(tmpcount!=j) {
+                                try {
+                                    tmpcount=j;
+                                    final ApiGourmetResponse.Shop tmpShop = ((ApiGourmetResponse.Shop) mListAdapter.getItem(j));
+                                    String mainImageUrl = tmpShop.getPhoto().getPc().getS();
+                                    System.out.println("mainImageUrl = " + mainImageUrl);
+                                    //thumbnail_image1 = (ImageView) infoWindow.findViewById(R.id.thumbnail_image1);
+                                    ImageLoader loader = ImageLoader.getInstance();
+                                    loader.loadImage(mainImageUrl, new SimpleImageLoadingListener() {
+                                        @Override
+                                        public void onLoadingComplete(String imageUri, View view, Bitmap loadedImage) {
+                                            photoArray.put(tmpShop.getName(), loadedImage);
+                                            System.out.println("arrayOK ");
+                                            //System.out.println("arrayOK " + tmpShop.getPhoto().getPc().getS());
+                                            //thumbnail_image.setImageBitmap(loadedImage);
+                                        }
+                                    });
+                                } finally {
+                                    mDone.countDown();
+                                }
+                            }
+                            try {
+                                mDone.await();
+                                j++;
+                            } catch(InterruptedException e) {
+                            }
+                        }
+
                         //すべての店情報を取り出す
                         for (int i = 0; i < mListAdapter.getCount(); i++) {
                             //Log.d("mListAdapter", ((ApiGourmetResponse.Shop)mListAdapter.getItem(i)).getName());
@@ -477,14 +519,44 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                             //        + "open:" + tmpShop.getOpen() + '\n'
                                             //       + "close:" + tmpShop.getClose())
                                             //.snippet("url:" + tmpShop.getUrl().getPc())
+                                    .snippet(tmpShop.getPhoto().getPc().getS())
                                     .draggable(false));
 
                             //店のホームページのURLを格納
                             //link = tmpShop.getUrl().getPc();
+                            System.out.println("name = "+tmpShop.getName());
+                            System.out.println("photoimage = " + tmpShop.getPhoto().getPc().getS());
 
+                            arrayMarker.add(marker);
                             markerArray.put(marker, tmpShop.getUrl().getPc()); // リストに格納（削除する為に必要）
+
+                            /*
+                            String mainImageUrl = marker.getSnippet();
+                            System.out.println("mainImageUrl = "+mainImageUrl);
+                            //thumbnail_image1 = (ImageView) infoWindow.findViewById(R.id.thumbnail_image1);
+                            ImageLoader loader = ImageLoader.getInstance();
+                            try {
+                                loader.loadImage(mainImageUrl, new SimpleImageLoadingListener() {
+                                    @Override
+                                    public void onLoadingComplete(String imageUri, View view, Bitmap loadedImage) {
+                                        //photoArray.put(marker, loadedImage);
+                                        System.out.println("arrayOK ");
+                                        //System.out.println("arrayOK " + tmpShop.getPhoto().getPc().getS());
+                                        //thumbnail_image.setImageBitmap(loadedImage);
+                                    }
+                                });
+                            }finally{
+                                mDone.countDown();
+                            }
+
+                            try {
+                                mDone.await();
+                            } catch(InterruptedException e) {
+                            }
+*/
+                            //TODO 画像が表示されない
                             //infoWindowを作成
-                           // mMap.setInfoWindowAdapter(new CustomInfoWindowAdapter());
+                            mMap.setInfoWindowAdapter(new CustomInfoWindowAdapter());
 
                             //マーカにクリックリスナーをつける
                             mMap.setOnMarkerClickListener(new OnMarkerClickListener() {
@@ -588,12 +660,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                             insertValues.put("link", markerArray.get(marker));
                                             insertValues.put("latitude", marker.getPosition().latitude);
                                             insertValues.put("longitude", marker.getPosition().longitude);
+                                            //insertValues.put("photo", marker.getSnippet());
 
                                             System.out.println("tmpCount = " + tmpCount);
                                             if (tmpCount % 10 != 0) {
                                                 System.out.println("insertValues = " + name + markerArray.get(marker)
                                                         + marker.getPosition().latitude
-                                                        + marker.getPosition().longitude);
+                                                        + marker.getPosition().longitude
+                                                        //+ marker.getSnippet()
+                                                );
                                                 long id = db.insert("person", null, insertValues);
                                             } else {
                                                 db.delete("person", null, null);
@@ -635,6 +710,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             });
 
                         }
+
                     } else {
                         //周辺に店が見つからなかった場合
                         //トースト表示
@@ -653,10 +729,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             Log.d("buttonClear", "clear");
             // 既存のマーカーを消す処理
-            for (int i = 0; i < markerArray.size(); i++) {
-                //    markerArray.get(i).remove();
+            for (int i = 0; i < arrayMarker.size(); i++) {
+                    arrayMarker.get(i).remove();
             }
-            markerArray.clear();
+            arrayMarker.clear();
 
             //マーカが削除されたので座標情報も削除
             location = null;
@@ -755,6 +831,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     //マーカがタップされたときに表示するinfowindowのクラス
     class CustomInfoWindowAdapter implements InfoWindowAdapter {
         private final View infoWindow;
+        ImageView thumbnail_image1 = new ImageView(MapsActivity.this);
+        AQuery aQuery;
 
         //画面の作成
         CustomInfoWindowAdapter() {
@@ -767,15 +845,79 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             TextView textViewTitle = (TextView) infoWindow.findViewById(R.id.title);
             textViewTitle.setText(title);
 
-            String snippet = marker.getSnippet();
+            //TODO 写真見れない
+
+            thumbnail_image1 = (ImageView) infoWindow.findViewById(R.id.thumbnail_image1);
+            thumbnail_image1.setImageBitmap(photoArray.get(marker.getTitle()));
+            /*
+            String mainImageUrl = marker.getSnippet();
+            System.out.println("mainImageUrl = "+mainImageUrl);
+            thumbnail_image1 = (ImageView) infoWindow.findViewById(R.id.thumbnail_image1);
+            ImageLoader loader = ImageLoader.getInstance();
+            loader.displayImage(mainImageUrl, thumbnail_image1);
+            thumbnail_image1.setTag(mainImageUrl);
+            thumbnail_image1.setImageResource(R.drawable.focuspin);
+            */
+/*
+            thumbnail_image1 = (ImageView) infoWindow.findViewById(R.id.thumbnail_image1);
+            aQuery = new AQuery(MapsActivity.this);
+            aQuery.id(R.id.thumbnail_image1).image(marker.getSnippet());
+*/
+
+            //Drawable d = null;
+            //thumbnail_image1 = (ImageView) infoWindow.findViewById(R.id.thumbnail_image1);
+            //thumbnail_image1.setImageResource(R.drawable.focuspin);
+            /*
+            try {
+                URL url = new URL(marker.getSnippet());
+                HttpURLConnection http = (HttpURLConnection) url.openConnection();
+                http.setRequestMethod("GET");
+                http.connect();
+                InputStream in = http.getInputStream();
+                d = Drawable.createFromStream(in, "");
+                in.close();
+                thumbnail_image1.setImageDrawable(m);
+            }catch(Exception e){
+            }
+            */
+
+            /*
+            String mainImageUrl = marker.getSnippet();
+            System.out.println("mainImageUrl = "+mainImageUrl);
+            thumbnail_image1 = (ImageView) infoWindow.findViewById(R.id.thumbnail_image1);
+            ImageLoader loader = ImageLoader.getInstance();
+            loader.displayImage(mainImageUrl, thumbnail_image1);
+            thumbnail_image1.setTag(mainImageUrl);
+            */
+
+            /*
+            loader.loadImage(mainImageUrl, new SimpleImageLoadingListener() {
+                @Override
+                public void onLoadingComplete(String imageUri, View view, Bitmap loadedImage) {
+                    thumbnail_image.setImageBitmap(loadedImage);
+                }
+            });
+            */
+            //thumbnail_image.setImageDrawable(new ColorDrawable(0x00000000));
+            //loader.displayImage(mainImageUrl, thumbnail_image1);
+            //thumbnail_image1.setTag(mainImageUrl);
+ /*
             TextView textViewSnippet = (TextView) infoWindow.findViewById(R.id.snippet);
             textViewSnippet.setText(snippet);
 
             TextView textViewLink = (TextView) infoWindow.findViewById(R.id.link);
             textViewLink.setText(link);
-
+*/
             return infoWindow;
         }
+
+        /*
+        public Object fetch(String address) throws MalformedURLException,IOException {
+            URL url = new URL(address);
+            Object content = url.openConnection().getInputStream();
+            return content;
+        }
+*/
 
         public View getInfoContents(Marker marker) {
             return null;

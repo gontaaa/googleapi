@@ -67,10 +67,10 @@ public class ShopListAdapter extends BaseAdapter {
     public View getView(int position, View convertView, ViewGroup parent) {
         ViewHolder holder;
         if (convertView == null) {
-            //convertView = mInflater.inflate(R.layout.shop_list_view, null);
+            convertView = mInflater.inflate(R.layout.shop_list_view, null);
             holder = new ViewHolder();
-            // holder.mThumbnailView = (ImageView) convertView.findViewById(R.id.thumbnail_image);
-            //holder.mTitleView = (TextView) convertView.findViewById(R.id.title);
+            holder.mThumbnailView = (ImageView) convertView.findViewById(R.id.thumbnail_image);
+            holder.mTitleView = (TextView) convertView.findViewById(R.id.title);
             convertView.setTag(holder);
         } else {
             holder = (ViewHolder) convertView.getTag();
@@ -79,7 +79,7 @@ public class ShopListAdapter extends BaseAdapter {
         ApiGourmetResponse.Shop shop = mShop.get(position);
 
         // イメージを表示する
-        String mainImageUrl = shop.getLogoImage();
+        String mainImageUrl = shop.getPhoto().getPc().getS();
         if (TextUtils.isEmpty(mainImageUrl)) {
             // URLがない場合はnoimageを表示する
             holder.mThumbnailView.setImageDrawable(new ColorDrawable(0x00000000));
