@@ -30,12 +30,10 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ListView;
 import android.widget.PopupWindow;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.androidquery.AQuery;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -56,6 +54,7 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.nostra13.universalimageloader.core.ImageLoader;
 import com.nostra13.universalimageloader.core.listener.SimpleImageLoadingListener;
 
+import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -307,17 +306,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
         //editText.clearFocus();
 
-
         if (mMap != null) {
             // タップ時のイベントハンドラ登録
             /*
             mMap.setOnMapClickListener(new OnMapClickListener() {
                 @Override
                 public void onMapClick(LatLng point) {
-                    // TODO Auto-generated method stub
-                    Toast.makeText(getApplicationContext(),
-                            "タップ位置\n緯度：" + point.latitude + "\n経度:" + point.longitude,
-                            Toast.LENGTH_LONG).show();
+                    //Toast.makeText(getApplicationContext(),
+                      //      "タップ位置\n緯度：" + point.latitude + "\n経度:" + point.longitude,
+                        //    Toast.LENGTH_LONG).show();
                 }
             });
             */
@@ -325,8 +322,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             mMap.setOnMapLongClickListener(new OnMapLongClickListener() {
                 @Override
                 public void onMapLongClick(LatLng point) {
-                    // TODO Auto-generated method stub
-
                     if (pinArray.size() != 0) {
                         // 既存のマーカーを消す処理
                         for (int i = 0; i < pinArray.size(); i++) {
@@ -341,7 +336,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     pin = mMap.addMarker(new MarkerOptions()
                             .position(position)
                             .icon(icon)
-                                    //.title(tmpShop.getName())
+                                    //.title(tmpShop.getName
                             .draggable(true));
                     pinArray.add(pin);
 
@@ -349,12 +344,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             "ピンの位置\n緯度：" + point.latitude + "\n経度:" + point.longitude,
                             Toast.LENGTH_LONG).show();
 
+                    //TODO クリックできないようにする
                     // タップ時のイベントハンドラ登録
                     /*
                     mMap.setOnMarkerClickListener(new OnMarkerClickListener() {
                         @Override
                         public boolean onMarkerClick(Marker marker) {
-                            // TODO Auto-generated method stub
                             Toast.makeText(getApplicationContext(), "マーカータップ", Toast.LENGTH_LONG).show();
                             return false;
                             }
@@ -365,19 +360,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     nowLat = point.latitude;
                     nowLon = point.longitude;
 
-                    //TODO クリックできないようにする
-
                     // ドラッグ時のイベントハンドラ登録
                     mMap.setOnMarkerDragListener(new OnMarkerDragListener() {
                         @Override
                         public void onMarkerDrag(Marker marker) {
-                            // TODO Auto-generated method stub
                             // Toast.makeText(getApplicationContext(), "マーカードラッグ中", Toast.LENGTH_SHORT).show();
                         }
 
                         @Override
                         public void onMarkerDragEnd(Marker marker) {
-                            // TODO Auto-generated method stub
                             //検索するピンの位置
                             nowLat = marker.getPosition().latitude;
                             nowLon = marker.getPosition().longitude;
@@ -389,7 +380,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                         @Override
                         public void onMarkerDragStart(Marker marker) {
-                            // TODO Auto-generated method stub
                             //Toast.makeText(getApplicationContext(), "マーカードラッグ開始", Toast.LENGTH_LONG).show();
                         }
                     });
@@ -650,16 +640,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                             String name = marker.getTitle();
                                             tmpCount++;
 
+                                            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+                                            photoArray.get(marker.getTitle()).compress(Bitmap.CompressFormat.JPEG, 100, stream);
+                                            byte[] bitmapdata = stream.toByteArray();
+
                                             //挿入項目を作成
                                             ContentValues insertValues = new ContentValues();
                                             insertValues.put("name", name);
                                             insertValues.put("link", markerArray.get(marker));
                                             insertValues.put("latitude", marker.getPosition().latitude);
                                             insertValues.put("longitude", marker.getPosition().longitude);
-                                            //insertValues.put("photo", marker.getSnippet());
+                                            insertValues.put("photo", bitmapdata);
 
                                             System.out.println("tmpCount = " + tmpCount);
-                                            if (tmpCount % 10 != 0) {
+                                            if (tmpCount % 3 != 0) {
                                                 System.out.println("insertValues = " + name + markerArray.get(marker)
                                                         + marker.getPosition().latitude
                                                         + marker.getPosition().longitude
@@ -700,7 +694,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                     popupWindow.setHeight(WindowManager.LayoutParams.WRAP_CONTENT);
 
                                     popupWindow.showAtLocation(findViewById(R.id.map), Gravity.CENTER, 0, 0);
-                                    // TODO Auto-generated method stub
                                     //Toast.makeText(getApplicationContext(), "インフォウィンドウクリック", Toast.LENGTH_LONG).show();
 
                                     //ウィンドウの中身が徐々に浮かび上がる
@@ -795,6 +788,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             Intent dbIntent = new Intent(MapsActivity.this,
                     ShowDataBase.class);
             startActivity(dbIntent);
+
+            /*
+            ShowDataBase obj = new ShowDataBase();
+            if(!obj.getTag().equals(null)) {
+                System.out.println("obj = "+obj.getTag().toString());
+            }else{
+                System.out.println("null");
+                System.out.println(obj.getTag().toString());
+            }
+            */
         }
     }
 
@@ -1051,16 +1054,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     public void onProviderDisabled(String provider) {
-        // TODO Auto-generated method stub
     }
 
     @Override
     public void onProviderEnabled(String provider) {
-        // TODO Auto-generated method stub
     }
 
     @Override
     public void onStatusChanged(String provider, int status, Bundle extras) {
-        // TODO Auto-generated method stub
     }
 }
