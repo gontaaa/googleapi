@@ -3,6 +3,7 @@ package com.example.hiroki.testgoogleapi;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
@@ -66,12 +67,11 @@ public class ShowDataBase extends Activity implements View.OnClickListener{
             String str = c2.getString(c2.getColumnIndex("name"));
             TextView tv = new TextView(this);
             //TextView tv = (TextView) findViewById(R.id.title);
+            tv.setId(0);
             tv.setText(str);
             tv.setTextSize(18.0f);
             // BLOBをbyte[]で受け取る.
-            byte blob[] = c2
-                    .getBlob(c2
-                            .getColumnIndex("photo"));
+            byte blob[] = c2.getBlob(c2.getColumnIndex("photo"));
             // byte[]をビットマップに変換しImageViewとして表示
             Bitmap bmp = BitmapFactory.decodeByteArray(blob, 0, blob.length);
             ImageView iv = new ImageView(this);
@@ -137,8 +137,12 @@ public class ShowDataBase extends Activity implements View.OnClickListener{
     }
 
     public void onClick(View v){
+        Intent i = new Intent();
+        i.putExtra("name",((TextView)v.findViewById(0)).getText().toString());
+        //System.out.println("tag = " + ((TextView)v.findViewById(0)).getText().toString());
         //view = v;
-        //finish();
+        setResult(1001,i);
+        finish();
         //Toast.makeText(getApplicationContext(),"clicked",Toast.LENGTH_LONG).show();
     }
 /*

@@ -4,8 +4,10 @@ import android.animation.ObjectAnimator;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
@@ -512,6 +514,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             //Object型の店情報をキャスト
                             ApiGourmetResponse.Shop tmpShop = ((ApiGourmetResponse.Shop) mListAdapter.getItem(i));
 
+
                             //マーカをつける、マーカーに情報の追加(店名、(画像のURL))
                             marker = mMap.addMarker(new MarkerOptions()
                                     .position(new LatLng(tmpShop.getLat(), tmpShop.getLng()))
@@ -525,7 +528,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                             //店のホームページのURLを格納
                             //link = tmpShop.getUrl().getPc();
-                            System.out.println("name = "+tmpShop.getName());
+                            System.out.println("name = " + tmpShop.getName());
                             System.out.println("photoimage = " + tmpShop.getPhoto().getPc().getS());
 
                             arrayMarker.add(marker);// リストに格納（削除する為に必要）
@@ -655,8 +658,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                             System.out.println("tmpCount = " + tmpCount);
                                             if (tmpCount % 3 != 0) {
                                                 System.out.println("insertValues = " + name + markerArray.get(marker)
-                                                        + marker.getPosition().latitude
-                                                        + marker.getPosition().longitude
+                                                                + marker.getPosition().latitude
+                                                                + marker.getPosition().longitude
                                                         //+ marker.getSnippet()
                                                 );
                                                 //DBにデータを挿入
@@ -722,7 +725,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             Log.d("buttonClear", "clear");
             // 既存のマーカーを消す処理
             for (int i = 0; i < arrayMarker.size(); i++) {
-                    arrayMarker.get(i).remove();
+                arrayMarker.get(i).remove();
             }
             arrayMarker.clear();
 
@@ -787,17 +790,223 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             //fabしたDBを表示
             Intent dbIntent = new Intent(MapsActivity.this,
                     ShowDataBase.class);
-            startActivity(dbIntent);
+            startActivityForResult(dbIntent,1001);
+        }
 
-            /*
-            ShowDataBase obj = new ShowDataBase();
-            if(!obj.getTag().equals(null)) {
-                System.out.println("obj = "+obj.getTag().toString());
+    }
+
+    @Override
+    public void onActivityResult(int requestCode,int resultCode,Intent intent){
+        //お気に入りリストをクリックした場合
+        if(requestCode==1001){
+            if(resultCode==1001){
+                String str = intent.getStringExtra("name");
+                System.out.println("name1 = "+str);
+
+                //TODO db検索とmap上に表示
+                MyOpenHelper helper = new MyOpenHelper(this);
+                SQLiteDatabase db = helper.getReadableDatabase();
+                Cursor c = db.query("person", null, "name=?",
+                        new String[]{str}, null, null, null);
+
+                String name,link;
+                Double latitude,longitude;
+                Bitmap photo;
+                try{
+                    if(c.moveToNext()){
+                        name = c.getString(c.getColumnIndex("name"));
+                        link = c.getString(c.getColumnIndex("link"));
+                        latitude = Double.parseDouble(c.getString(c.getColumnIndex("latitude")));
+                        longitude = Double.parseDouble(c.getString(c.getColumnIndex("longitude")));
+                        // BLOBをbyte[]で受け取る.
+                        byte blob[] = c.getBlob(c.getColumnIndex("photo"));
+                        // byte[]をビットマップに変換しImageViewとして表示
+                        photo = BitmapFactory.decodeByteArray(blob, 0, blob.length);
+
+                        //マーカをつける、マーカーに情報の追加(店名、(画像のURL))
+                        marker = mMap.addMarker(new MarkerOptions()
+                                .position(new LatLng(latitude, longitude))
+                                .title(name)
+                                        // .snippet("address:" + tmpShop.getAddress() + '\n'
+                                        //        + "open:" + tmpShop.getOpen() + '\n'
+                                        //       + "close:" + tmpShop.getClose())
+                                        //.snippet("url:" + tmpShop.getUrl().getPc())
+                                        //.snippet(tmpShop.getPhoto().getPc().getS())
+                                .draggable(false));
+
+                        arrayMarker.add(marker);// リストに格納（削除する為に必要）
+                        markerArray.put(marker, link); //店のurlをマーカーごとに格納
+                        photoArray.put(name, photo);
+
+                        System.out.println("name555 = " + name);
+
+                        //infoWindowを作成
+                        mMap.setInfoWindowAdapter(new CustomInfoWindowAdapter());
+
+
+
+                        //マーカにクリックリスナーをつける
+                        mMap.setOnMarkerClickListener(new OnMarkerClickListener() {
+                            @Override
+                            public boolean onMarkerClick(Marker marker) {
+                                //twitter検索のために店名を取得しておく
+                                keyword = marker.getTitle();
+                                location = marker.getPosition();
+                                return false;
+                            }
+                        });
+
+                        //クリックでポップアップウィンドウを表示
+                        mMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
+                            @Override
+                            public void onInfoWindowClick(final Marker marker) {
+                                popupWindow = new PopupWindow(MapsActivity.this);
+                                View popupView
+                                        = (LinearLayout) getLayoutInflater().inflate(R.layout.popup_window, null);
+
+                                //popupwindow内のyesボタンが押された時
+                                popupView.findViewById(R.id.yes_button).setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View v) {
+                                        //markerArrayから格納していたURLを取得
+                                        //link = markerArray.get(marker);
+                                        //インテントを使いhomepageにアクセス
+                                        try {
+                                            Uri uri = Uri.parse(markerArray.get(marker));
+                                            Intent i = new Intent(Intent.ACTION_VIEW, uri);
+                                            startActivity(i);
+                                            //Toast.makeText(MapsActivity.this, "hoge", Toast.LENGTH_SHORT).show();
+                                        } catch (Exception e) {
+                                            //データを処理できるアプリがインストールされていません
+                                        }
+                                    }
+                                });
+
+                                //popupwindow内のtwitterボタンが押された時
+                                popupView.findViewById(R.id.twitter_button).setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View v) {
+                                        //TODO twiter検索
+
+                                        //まずtwitterの認証を確認する
+                                        twitterOauthOK = TwitterUtils.hasAccessToken(MapsActivity.this);
+                                        //twitterOauthOK = false;
+                                        //未確認の時
+                                        if (!twitterOauthOK) {
+                                            Intent intent = new Intent(MapsActivity.this, TwitterOAuthActivity.class);
+                                            startActivity(intent);
+                                            //finish();
+                                        } else {
+                                            //確認済みのとき
+                                            System.out.println("TwitterUtils.hasAccessToken(this)="
+                                                    + TwitterUtils.hasAccessToken(MapsActivity.this));
+
+                                            //認証系の保存
+                                            consumerKey = TwitterUtils.getConsumerKey(MapsActivity.this);
+                                            consumerSecret = TwitterUtils.getConsumerSecret(MapsActivity.this);
+                                            accessToken = TwitterUtils.loadAccessToken(MapsActivity.this).getToken();
+                                            accessTokenSecret = TwitterUtils.loadAccessToken(MapsActivity.this).getTokenSecret();
+
+                                            //検索画面に遷移
+                                            Intent intent = new Intent(MapsActivity.this, TwitterSearch.class);
+                                            startActivity(intent);
+                                        }
+                                    }
+                                });
+
+                                //popupwindow内のfavボタンが押された時
+                                popupView.findViewById(R.id.fav_button).setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View v) {
+                                        //TODO fav
+                                        //DBの設定
+                                        MyOpenHelper helper = new MyOpenHelper(MapsActivity.this);
+                                        final SQLiteDatabase db = helper.getWritableDatabase();
+
+                                        //店名をnameに格納
+                                        String name = marker.getTitle();
+                                        tmpCount++;
+
+                                        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+                                        photoArray.get(marker.getTitle()).compress(Bitmap.CompressFormat.JPEG, 100, stream);
+                                        byte[] bitmapdata = stream.toByteArray();
+
+                                        //挿入項目を作成
+                                        ContentValues insertValues = new ContentValues();
+                                        insertValues.put("name", name);
+                                        insertValues.put("link", markerArray.get(marker));
+                                        insertValues.put("latitude", marker.getPosition().latitude);
+                                        insertValues.put("longitude", marker.getPosition().longitude);
+                                        insertValues.put("photo", bitmapdata);
+
+                                        System.out.println("tmpCount = " + tmpCount);
+                                        if (tmpCount % 3 != 0) {
+                                            System.out.println("insertValues = " + name + markerArray.get(marker)
+                                                            + marker.getPosition().latitude
+                                                            + marker.getPosition().longitude
+                                                    //+ marker.getSnippet()
+                                            );
+                                            //DBにデータを挿入
+                                            long id = db.insert("person", null, insertValues);
+                                        } else {
+                                            //DBを削除
+                                            db.delete("person", null, null);
+                                        }
+                                    }
+                                });
+
+                                //popupwindow内のnoボタンが押された時
+                                popupView.findViewById(R.id.close_button).setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View v) {
+                                        //popupwindowを閉じる
+                                        if (popupWindow.isShowing()) {
+                                            popupWindow.dismiss();
+                                        }
+                                    }
+                                });
+
+                                //popupWindow.setWindowLayoutMode(
+                                //LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                                //popupWindow.setWindowLayoutType(0);
+                                popupWindow.setContentView(popupView);
+
+                                // タップ時に他のViewでキャッチされないための設定
+                                popupWindow.setOutsideTouchable(true);
+                                popupWindow.setFocusable(true);
+
+                                float width = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 300, getResources().getDisplayMetrics());
+                                popupWindow.setWindowLayoutMode((int) width, WindowManager.LayoutParams.WRAP_CONTENT);
+                                popupWindow.setWidth((int) width);
+                                popupWindow.setHeight(WindowManager.LayoutParams.WRAP_CONTENT);
+
+                                popupWindow.showAtLocation(findViewById(R.id.map), Gravity.CENTER, 0, 0);
+                                //Toast.makeText(getApplicationContext(), "インフォウィンドウクリック", Toast.LENGTH_LONG).show();
+
+                                //ウィンドウの中身が徐々に浮かび上がる
+                                animateAlpha(popupView);
+                            }
+                        });
+                        //中心に移動
+                        CameraPosition cameraPos = new CameraPosition.Builder()
+                                .target(new LatLng(latitude, longitude))
+                                .zoom(15)
+                                .bearing(0)
+                                .build();
+                        mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPos));
+                    }
+
+                }finally{
+                    c.close();
+                }
+
+            }else if(resultCode==1002){
+
             }else{
-                System.out.println("null");
-                System.out.println(obj.getTag().toString());
+
             }
-            */
+        }else{
+
         }
     }
 
@@ -845,13 +1054,24 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         //infowindow内のビューの追加
         public View getInfoWindow(Marker marker) {
             //店名を表示
-            String title = marker.getTitle();
-            TextView textViewTitle = (TextView) infoWindow.findViewById(R.id.title);
-            textViewTitle.setText(title);
+            if(marker.getTitle() != null) {
+                String title = marker.getTitle();
+                TextView textViewTitle = (TextView) infoWindow.findViewById(R.id.title);
+                textViewTitle.setText(title);
 
-            //保存しておいた店の画像表示
-            thumbnail_image1 = (ImageView) infoWindow.findViewById(R.id.thumbnail_image1);
-            thumbnail_image1.setImageBitmap(photoArray.get(marker.getTitle()));
+                //保存しておいた店の画像表示
+                thumbnail_image1 = (ImageView) infoWindow.findViewById(R.id.thumbnail_image1);
+                thumbnail_image1.setImageBitmap(photoArray.get(marker.getTitle()));
+            }else{
+                /*
+                TextView textViewTitle = (TextView) infoWindow.findViewById(R.id.title);
+                textViewTitle.setText("");
+                //保存しておいた店の画像表示
+                //thumbnail_image1 = (ImageView) infoWindow.findViewById(R.id.thumbnail_image1);
+                thumbnail_image1.setImageBitmap(null);
+                */
+                return getLayoutInflater().inflate(R.layout.tmp, null);
+            }
             /*
             String mainImageUrl = marker.getSnippet();
             System.out.println("mainImageUrl = "+mainImageUrl);
