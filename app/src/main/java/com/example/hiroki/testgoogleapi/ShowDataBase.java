@@ -15,6 +15,7 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 /**
  * Created by hiroki on 15/12/21.
@@ -28,14 +29,17 @@ public class ShowDataBase extends Activity implements View.OnClickListener{
         setContentView(R.layout.show_database);
 
         //setContentView(R.layout.activity_main);
-        LinearLayout llayout = (LinearLayout) findViewById(R.id.llayout);
+        final LinearLayout llayout = (LinearLayout) findViewById(R.id.llayout);
 
         //LinearLayout layout = new LinearLayout(this);
         llayout.setOrientation(LinearLayout.VERTICAL);
         setContentView(llayout);
 
         MyOpenHelper helper = new MyOpenHelper(this);
-        SQLiteDatabase db = helper.getReadableDatabase();
+        final SQLiteDatabase db = helper.getReadableDatabase();
+
+        MyOpenHelper helper2 = new MyOpenHelper(this);
+        final SQLiteDatabase db2 = helper2.getWritableDatabase();
 
         // queryメソッドの実行例
         //query(テーブル名,column(nullなら全部),selectionArgs,groupby,having,orderby)
@@ -62,7 +66,7 @@ public class ShowDataBase extends Activity implements View.OnClickListener{
         // カーソルから値を取り出す
         while (c2.moveToNext()) {
             // 表示用LinearLayout
-            LinearLayout linear = new LinearLayout(this);
+            final LinearLayout linear = new LinearLayout(this);
             // idとファイル名を受け取りTextViewとして表示
             String str = c2.getString(c2.getColumnIndex("name"));
             TextView tv = new TextView(this);
@@ -102,7 +106,7 @@ public class ShowDataBase extends Activity implements View.OnClickListener{
             linear.setOnLongClickListener(new View.OnLongClickListener() {
                 // ボタンが長押しクリックされた時のハンドラ
                 @Override
-                public boolean onLongClick(View v) {
+                public boolean onLongClick(final View v) {
                     // 長押しクリックされた時の処理を記述
                     // 確認ダイアログの生成
                     AlertDialog.Builder alertDlg = new AlertDialog.Builder(ShowDataBase.this);
@@ -112,18 +116,19 @@ public class ShowDataBase extends Activity implements View.OnClickListener{
                             "Yes",
                             new DialogInterface.OnClickListener() {
                                 public void onClick(DialogInterface dialog, int which) {
-                                    //TODO OK ボタンクリック処理(DB削除)
-
-                                    //Toast.makeText(getApplicationContext(),"削除しました。",Toast.LENGTH_LONG).show();
+                                    //OK ボタンクリック処理(DB削除)
+                                    db2.delete("person", "name = ?", new String[]{((TextView) v.findViewById(0)).getText().toString()});
+                                    llayout.removeView(v);
+                                    Toast.makeText(getApplicationContext(),"削除しました。", Toast.LENGTH_LONG).show();
                                 }
                             });
                     alertDlg.setNegativeButton(
-                             "No",
-                             new DialogInterface.OnClickListener() {
+                            "No",
+                            new DialogInterface.OnClickListener() {
                                 public void onClick(DialogInterface dialog, int which) {
-                                     // Cancel ボタンクリック処理
+                                    // Cancel ボタンクリック処理
                                 }
-                             });
+                            });
                     // 表示
                     alertDlg.create().show();
                     //Log.v("OnLongClick", "Button was clicked");
@@ -139,8 +144,6 @@ public class ShowDataBase extends Activity implements View.OnClickListener{
     public void onClick(View v){
         Intent i = new Intent();
         i.putExtra("name",((TextView)v.findViewById(0)).getText().toString());
-        //System.out.println("tag = " + ((TextView)v.findViewById(0)).getText().toString());
-        //view = v;
         setResult(1001,i);
         finish();
         //Toast.makeText(getApplicationContext(),"clicked",Toast.LENGTH_LONG).show();

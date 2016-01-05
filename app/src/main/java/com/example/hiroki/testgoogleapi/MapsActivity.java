@@ -159,6 +159,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     //非同期処理を同期するための変数
     private final CountDownLatch mDone = new CountDownLatch(1);
 
+    //db検索とmap上に表示
+    private MyOpenHelper helper;
+    private SQLiteDatabase db;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -423,6 +427,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     //ボタンクリック時の動作
     public void onClick(View v) {
+        helper = new MyOpenHelper(this);
+        db = helper.getReadableDatabase();
+
         //editTextのフォーカスをはずす
         editText.clearFocus();
         /*
@@ -514,6 +521,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             //Object型の店情報をキャスト
                             ApiGourmetResponse.Shop tmpShop = ((ApiGourmetResponse.Shop) mListAdapter.getItem(i));
 
+                            //TODO fabは非表示
 
                             //マーカをつける、マーカーに情報の追加(店名、(画像のURL))
                             marker = mMap.addMarker(new MarkerOptions()
@@ -634,29 +642,25 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                     popupView.findViewById(R.id.fav_button).setOnClickListener(new View.OnClickListener() {
                                         @Override
                                         public void onClick(View v) {
-                                            //TODO fav
-                                            //DBの設定
-                                            MyOpenHelper helper = new MyOpenHelper(MapsActivity.this);
-                                            final SQLiteDatabase db = helper.getWritableDatabase();
-
                                             //店名をnameに格納
                                             String name = marker.getTitle();
-                                            tmpCount++;
 
-                                            ByteArrayOutputStream stream = new ByteArrayOutputStream();
-                                            photoArray.get(marker.getTitle()).compress(Bitmap.CompressFormat.JPEG, 100, stream);
-                                            byte[] bitmapdata = stream.toByteArray();
+                                            Cursor c = db.query("person", new String[]{"name"}, "name = ?",
+                                                    new String[]{name}, null, null, null);
 
-                                            //挿入項目を作成
-                                            ContentValues insertValues = new ContentValues();
-                                            insertValues.put("name", name);
-                                            insertValues.put("link", markerArray.get(marker));
-                                            insertValues.put("latitude", marker.getPosition().latitude);
-                                            insertValues.put("longitude", marker.getPosition().longitude);
-                                            insertValues.put("photo", bitmapdata);
+                                            if (!c.moveToFirst()) {
+                                                ByteArrayOutputStream stream = new ByteArrayOutputStream();
+                                                photoArray.get(marker.getTitle()).compress(Bitmap.CompressFormat.JPEG, 100, stream);
+                                                byte[] bitmapdata = stream.toByteArray();
 
-                                            System.out.println("tmpCount = " + tmpCount);
-                                            if (tmpCount % 3 != 0) {
+                                                //挿入項目を作成
+                                                ContentValues insertValues = new ContentValues();
+                                                insertValues.put("name", name);
+                                                insertValues.put("link", markerArray.get(marker));
+                                                insertValues.put("latitude", marker.getPosition().latitude);
+                                                insertValues.put("longitude", marker.getPosition().longitude);
+                                                insertValues.put("photo", bitmapdata);
+
                                                 System.out.println("insertValues = " + name + markerArray.get(marker)
                                                                 + marker.getPosition().latitude
                                                                 + marker.getPosition().longitude
@@ -664,9 +668,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                                 );
                                                 //DBにデータを挿入
                                                 long id = db.insert("person", null, insertValues);
+                                                Toast.makeText(getApplicationContext(), "お気に入り登録しました。", Toast.LENGTH_LONG).show();
                                             } else {
-                                                //DBを削除
-                                                db.delete("person", null, null);
+                                                Toast.makeText(getApplicationContext(), "お気に入り登録済みです。", Toast.LENGTH_LONG).show();
                                             }
                                         }
                                     });
@@ -703,6 +707,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                     animateAlpha(popupView);
                                 }
                             });
+
 
                         }
 
@@ -797,15 +802,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     public void onActivityResult(int requestCode,int resultCode,Intent intent){
+        helper = new MyOpenHelper(this);
+        db = helper.getReadableDatabase();
+
         //お気に入りリストをクリックした場合
         if(requestCode==1001){
+            //マーカーをたてる
             if(resultCode==1001){
                 String str = intent.getStringExtra("name");
                 System.out.println("name1 = "+str);
 
-                //TODO db検索とmap上に表示
-                MyOpenHelper helper = new MyOpenHelper(this);
-                SQLiteDatabase db = helper.getReadableDatabase();
+
                 Cursor c = db.query("person", null, "name=?",
                         new String[]{str}, null, null, null);
 
@@ -842,8 +849,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                         //infoWindowを作成
                         mMap.setInfoWindowAdapter(new CustomInfoWindowAdapter());
-
-
 
                         //マーカにクリックリスナーをつける
                         mMap.setOnMarkerClickListener(new OnMarkerClickListener() {
@@ -918,29 +923,25 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                 popupView.findViewById(R.id.fav_button).setOnClickListener(new View.OnClickListener() {
                                     @Override
                                     public void onClick(View v) {
-                                        //TODO fav
-                                        //DBの設定
-                                        MyOpenHelper helper = new MyOpenHelper(MapsActivity.this);
-                                        final SQLiteDatabase db = helper.getWritableDatabase();
-
                                         //店名をnameに格納
                                         String name = marker.getTitle();
-                                        tmpCount++;
 
-                                        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-                                        photoArray.get(marker.getTitle()).compress(Bitmap.CompressFormat.JPEG, 100, stream);
-                                        byte[] bitmapdata = stream.toByteArray();
+                                        Cursor c = db.query("person", new String[]{"name"}, "name = ?",
+                                                new String[]{name}, null, null, null);
 
-                                        //挿入項目を作成
-                                        ContentValues insertValues = new ContentValues();
-                                        insertValues.put("name", name);
-                                        insertValues.put("link", markerArray.get(marker));
-                                        insertValues.put("latitude", marker.getPosition().latitude);
-                                        insertValues.put("longitude", marker.getPosition().longitude);
-                                        insertValues.put("photo", bitmapdata);
+                                        if(!c.moveToFirst()) {
+                                            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+                                            photoArray.get(marker.getTitle()).compress(Bitmap.CompressFormat.JPEG, 100, stream);
+                                            byte[] bitmapdata = stream.toByteArray();
 
-                                        System.out.println("tmpCount = " + tmpCount);
-                                        if (tmpCount % 3 != 0) {
+                                            //挿入項目を作成
+                                            ContentValues insertValues = new ContentValues();
+                                            insertValues.put("name", name);
+                                            insertValues.put("link", markerArray.get(marker));
+                                            insertValues.put("latitude", marker.getPosition().latitude);
+                                            insertValues.put("longitude", marker.getPosition().longitude);
+                                            insertValues.put("photo", bitmapdata);
+
                                             System.out.println("insertValues = " + name + markerArray.get(marker)
                                                             + marker.getPosition().latitude
                                                             + marker.getPosition().longitude
@@ -948,9 +949,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                             );
                                             //DBにデータを挿入
                                             long id = db.insert("person", null, insertValues);
-                                        } else {
-                                            //DBを削除
-                                            db.delete("person", null, null);
+                                            Toast.makeText(getApplicationContext(), "お気に入り登録しました。", Toast.LENGTH_LONG).show();
+                                        }else{
+                                            Toast.makeText(getApplicationContext(), "お気に入り登録済みです。", Toast.LENGTH_LONG).show();
                                         }
                                     }
                                 });
@@ -994,13 +995,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                 .bearing(0)
                                 .build();
                         mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPos));
+
+                        marker.showInfoWindow();
                     }
 
                 }finally{
                     c.close();
                 }
 
+                //TODO 削除したときの動作
             }else if(resultCode==1002){
+
 
             }else{
 
