@@ -17,6 +17,10 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.SystemClock;
 import android.support.v4.app.FragmentActivity;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -78,7 +82,7 @@ import retrofit.client.Response;
 //import com.google.android.gms.maps.CameraUpdateFactory;
 //import android.widget.Toast;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, LocationListener, OnClickListener {
+public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, LocationListener, OnClickListener,OnDrawerListener{
 
     private GoogleMap mMap;
     //private RequestQueue mRequestQueue;
@@ -163,12 +167,35 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private MyOpenHelper helper;
     private SQLiteDatabase db;
 
+    private DrawerLayout mDrawerLayout;
+    private ActionBarDrawerToggle mDrawerToggle;
+    private RecyclerView mRecyclerView = null;
+    private View mView;
+
+    private int tweetCount=0;
+
+    // RecyclerViewとAdapter
+    //private RecyclerView mRecyclerView = null;
+    //private RecyclerAdapter mAdapter = null;
+
+
+    @Override
+    public void onDrawerClicked(View v,int positon){
+
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
-
-        //TODO お気に入りリスト、検索履歴リスト
+        /*
+        mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
+        mDrawerToggle = new ActionBarDrawerToggle(this,mDrawerLayout,R.string.app_name,R.string.app_name);
+        mDrawerLayout.setDrawerListener(mDrawerToggle);
+        mDrawerToggle.syncState();
+        setNavigationDrawer();
+*/
+        //TODO 検索履歴リスト
 
         /*
         //まずtwitterの認証を確認する
@@ -202,6 +229,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mapFragment.getMapAsync(this);
     }
 
+    private void setNavigationDrawer(){
+        mRecyclerView = (RecyclerView) findViewById(R.id.recycler_view);
+        mRecyclerView.setHasFixedSize(true);
+        mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+        final List list = new ArrayList();
+        list.add("お気に入り");
+        list.add("twitter検索");
+
+        mRecyclerView.setAdapter(new DrawerAdapter(this, list));
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -514,6 +552,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             }
                         }
 
+                        int flag=0;
                         //すべての店情報を取り出す
                         for (int i = 0; i < mListAdapter.getCount(); i++) {
                             //Log.d("mListAdapter", ((ApiGourmetResponse.Shop)mListAdapter.getItem(i)).getName());
@@ -521,8 +560,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             //Object型の店情報をキャスト
                             ApiGourmetResponse.Shop tmpShop = ((ApiGourmetResponse.Shop) mListAdapter.getItem(i));
 
-                            //TODO fabは非表示
+                            //TODO 表示済みのマーカーを非表示,arrayMarkerの上限設ける
+/*
+                            for(int index = 0;i<arrayMarker.size();i++){
+                                if(arrayMarker.get(index).getTitle() == tmpShop.getName()){
+                                    flag=1;
+                                }
+                            }
 
+                            if(flag!=1) {
+                            */
                             //マーカをつける、マーカーに情報の追加(店名、(画像のURL))
                             marker = mMap.addMarker(new MarkerOptions()
                                     .position(new LatLng(tmpShop.getLat(), tmpShop.getLng()))
@@ -576,6 +623,30 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                     //twitter検索のために店名を取得しておく
                                     keyword = marker.getTitle();
                                     location = marker.getPosition();
+
+                                    //TODO マーカー色変更
+                                    /*
+                                    // マーカーの設定
+                                    MarkerOptions options = new MarkerOptions();
+                                    options.position(location);
+                                    //options.title("クラスメソッド株式会社");
+                                    //options.snippet(location.toString());
+                                    BitmapDescriptor icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE);
+                                    options.icon(icon);
+
+                                    // マップにマーカーを追加
+                                    marker = mMap.addMarker(options);
+
+                                    //中心に移動
+                                    CameraPosition cameraPos = new CameraPosition.Builder()
+                                            .target(new LatLng(latitude, longitude))
+                                            .zoom(15)
+                                            .bearing(0)
+                                            .build();
+                                    mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPos));
+
+                                    marker.showInfoWindow();
+*/
                                     return false;
                                 }
                             });
@@ -633,7 +704,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                                                 //検索画面に遷移
                                                 Intent intent = new Intent(MapsActivity.this, TwitterSearch.class);
-                                                startActivity(intent);
+                                                startActivityForResult(intent, 1002);
+
                                             }
                                         }
                                     });
@@ -707,7 +779,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                     animateAlpha(popupView);
                                 }
                             });
-
+                            // }
 
                         }
 
@@ -740,6 +812,37 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             Toast.makeText(this, "マーカーを削除しました", Toast.LENGTH_LONG).show();
         } else if (v == buttonSearch) {
 
+            if (location == null) {
+                Toast.makeText(this, "検索したいお店のマーカーをタップして下さい。", Toast.LENGTH_LONG).show();
+            } else {
+
+                TwitterSearch tw = new TwitterSearch();
+
+
+                //LatLng location = new LatLng(marker.getPosition().latitude, marker.getPosition().longitude);
+                BitmapDescriptor icon = BitmapDescriptorFactory.fromResource(R.drawable.ruun);
+
+                //LocationManagerの取得
+                LocationManager locationManager = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
+                //GPSから現在地の情報を取得
+                Location myLocate = locationManager.getLastKnownLocation("gps");
+
+                LatLng nowLocation = new LatLng(myLocate.getLatitude(), myLocate.getLongitude());
+
+                // @Override
+                //public void onClick(View v) {
+                //マーカーを表示
+                MarkerOptions options = new MarkerOptions();
+                options.position(nowLocation);
+                options.icon(icon);
+                Marker marker = mMap.addMarker(options);
+
+                //アニメーション
+                animateMarker(marker, nowLocation, location, true);
+
+
+            }
+/*
             if (location == null) {
                 Toast.makeText(this, "検索したいお店のマーカーをタップして下さい。", Toast.LENGTH_LONG).show();
             } else {
@@ -791,6 +894,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
 
             }
+            */
         } else if (v == referenceButton) {
             //fabしたDBを表示
             Intent dbIntent = new Intent(MapsActivity.this,
@@ -805,6 +909,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         helper = new MyOpenHelper(this);
         db = helper.getReadableDatabase();
 
+        //TODO 表示済みのマーカーを非表示にする
         //お気に入りリストをクリックした場合
         if(requestCode==1001){
             //マーカーをたてる
@@ -1003,14 +1108,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     c.close();
                 }
 
-                //TODO 削除したときの動作
-            }else if(resultCode==1002){
-
-
             }else{
 
             }
-        }else{
+
+        }else if(requestCode==1002){
+            if(resultCode==1002){
+                if(intent.getStringExtra("num")!=null) {
+                    tweetCount = Integer.parseInt(intent.getStringExtra("num"));
+                    System.out.println("tweetCount = " + tweetCount);
+                }else{
+                    System.out.println("tweetCount = nullです");
+                }
+            }
 
         }
     }
@@ -1246,35 +1356,37 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     public void setIcon(LatLng location) {
-        LatLng location2 = moveLatLng(location, 0, 12.0d / (60 * 60));
-        LatLng location3 = moveLatLng(location, 0, -12.0d / (60 * 60));
+        LatLng location2 = moveLatLng(location, 0, 0.5d / (60 * 60));
+        //LatLng location3 = moveLatLng(location, 0, -12.0d / (60 * 60));
 
         BitmapDescriptor icon = BitmapDescriptorFactory.fromResource(R.drawable.heart2);
-        BitmapDescriptor icon2 = BitmapDescriptorFactory.fromResource(R.drawable.boo);
+        //BitmapDescriptor icon2 = BitmapDescriptorFactory.fromResource(R.drawable.boo);
 
         // 貼り付設定
         GroundOverlayOptions overlayOptions = new GroundOverlayOptions();
         GroundOverlayOptions overlayOptions2 = new GroundOverlayOptions();
         overlayOptions.image(icon);
-        overlayOptions2.image(icon2);
+        //overlayOptions2.image(icon2);
 
         //　public GroundOverlayOptions anchor (float u, float v)
         // (0,0):top-left, (0,1):bottom-left, (1,0):top-right, (1,1):bottom-right
         //中心に表示(?)
-        overlayOptions.anchor(0.5f, 0.5f);
-        overlayOptions2.anchor(0.75f, 0.5f);
+        overlayOptions.anchor(0, 0.75f);
+        //overlayOptions2.anchor(0.75f, 0.5f);
 
         // 張り付け画像の大きさ メートル単位
         // public GroundOverlayOptions	position(LatLng location, float width, float height)
-        overlayOptions.position(location2, 300f, 300f);
-        overlayOptions2.position(location3, 300f, 300f);
+        //if(tweetCount!=0) {
+            overlayOptions.position(location2, tweetCount + 'f', +tweetCount + 'f');
+            GroundOverlay overlay = mMap.addGroundOverlay(overlayOptions);
+            overlay.setTransparency(0.0F);
+        //}
+        //overlayOptions2.position(location3, 0.1f,0.1f);
 
         // マップに貼り付け・アルファを設定
-        GroundOverlay overlay = mMap.addGroundOverlay(overlayOptions);
-        GroundOverlay overlay2 = mMap.addGroundOverlay(overlayOptions2);
+        //GroundOverlay overlay2 = mMap.addGroundOverlay(overlayOptions2);
         // 透明度
-        overlay.setTransparency(0.0F);
-        overlay2.setTransparency(0.0F);
+        //overlay2.setTransparency(0.0F);
     }
 
     @Override
@@ -1288,4 +1400,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onStatusChanged(String provider, int status, Bundle extras) {
     }
+
+    //TODO customwindowの設定
 }
